@@ -8,33 +8,21 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
             display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-        .editor, .preview {
-            flex: 1;
-            min-width: 300px;
-        }
-        .editor textarea {
-            width: 100%;
-            height: 400px;
-            font-family: monospace;
-            font-size: 14px;
-            padding: 10px;
-            border: 2px solid #333;
-            border-radius: 5px;
-            resize: vertical;
+            flex-direction: column;
+            min-height: 100vh;
         }
         .preview-controls {
-            margin-bottom: 10px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: #333;
+            padding: 10px;
             text-align: center;
+            z-index: 1000;
         }
         .preview-controls button {
             padding: 8px 16px;
@@ -48,17 +36,42 @@
         .preview-controls button:hover {
             background-color: #0056b3;
         }
+        .preview {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 20px 20px; /* Top padding for fixed buttons */
+            overflow: auto;
+        }
         .preview-window {
             border: 2px solid #333;
             background-color: white;
             transition: width 0.3s ease, height 0.3s ease;
-            margin: 0 auto;
             overflow: hidden;
+            max-width: 100%;
+            max-height: 100%;
         }
         .preview-window iframe {
             width: 100%;
             height: 100%;
             border: none;
+        }
+        .editor {
+            width: 100%;
+            padding: 10px;
+            background-color: #fff;
+            border-top: 2px solid #333;
+        }
+        .editor textarea {
+            width: 100%;
+            height: 100px; /* Smaller textarea */
+            font-family: monospace;
+            font-size: 12px;
+            padding: 8px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            resize: vertical;
         }
         .phone {
             width: 360px;
@@ -75,10 +88,19 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="editor">
-            <h2>Paste Your HTML Code</h2>
-            <textarea id="codeInput" placeholder="Enter your HTML code here...">
+    <div class="preview-controls">
+        <button onclick="setPreview('phone')">Phone (360x640)</button>
+        <button onclick="setPreview('tablet')">Tablet (768x1024)</button>
+        <button onclick="setPreview('laptop')">Laptop (1366x768)</button>
+    </div>
+    <div class="preview">
+        <div class="preview-window laptop" id="previewWindow">
+            <iframe id="previewFrame"></iframe>
+        </div>
+    </div>
+    <div class="editor">
+        <h3>Paste Your HTML Code</h3>
+        <textarea id="codeInput" placeholder="Enter your HTML code here...">
 <!DOCTYPE html>
 <html>
 <head>
@@ -96,19 +118,7 @@
     <p>This is a sample webpage. Resize the preview to see responsive design in action.</p>
 </body>
 </html>
-            </textarea>
-        </div>
-        <div class="preview">
-            <h2>Preview</h2>
-            <div class="preview-controls">
-                <button onclick="setPreview('phone')">Phone (360x640)</button>
-                <button onclick="setPreview('tablet')">Tablet (768x1024)</button>
-                <button onclick="setPreview('laptop')">Laptop (1366x768)</button>
-            </div>
-            <div class="preview-window laptop" id="previewWindow">
-                <iframe id="previewFrame"></iframe>
-            </div>
-        </div>
+        </textarea>
     </div>
     <script>
         function updatePreview() {
@@ -124,10 +134,7 @@
             previewWindow.className = 'preview-window ' + device;
         }
 
-        // Update preview on code change
         document.getElementById('codeInput').addEventListener('input', updatePreview);
-
-        // Initial preview render
         updatePreview();
     </script>
 </body>
