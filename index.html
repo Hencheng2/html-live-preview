@@ -38,7 +38,7 @@
         .preview {
             position: fixed;
             top: 60px;
-            bottom: 110px;
+            bottom: 130px;
             left: 20px;
             right: 20px;
             display: flex;
@@ -81,16 +81,25 @@
             border-top: 2px solid #333;
             z-index: 1000;
             display: flex;
-            align-items: center;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .editor .textarea-group {
+            display: flex;
             gap: 10px;
+        }
+        .editor .textarea-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
         .editor h3 {
             margin: 0;
-            font-size: 14px;
-            flex: 0 0 auto;
+            font-size: 12px;
+            text-align: center;
         }
         .editor textarea {
-            flex: 1;
+            width: 100%;
             height: 60px;
             font-family: monospace;
             font-size: 12px;
@@ -102,6 +111,7 @@
         .editor .button-group {
             display: flex;
             gap: 5px;
+            justify-content: flex-end;
         }
         .editor button {
             padding: 6px 12px;
@@ -143,10 +153,45 @@
         </div>
     </div>
     <div class="editor">
-        <h3>Paste Your HTML Code</h3>
-        <textarea id="codeInput" placeholder="Enter your HTML code here...">
-Made By Henry
-        </textarea>
+        <div class="textarea-group">
+            <div class="textarea-container">
+                <h3>HTML</h3>
+                <textarea id="htmlInput" placeholder="Enter your HTML code here...">
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sample Page</title>
+</head>
+<body>
+    <h1>Sample Page</h1>
+    <img src="https://via.placeholder.com/800x400" alt="Sample Image">
+    <p>This is a sample webpage. Resize the preview to see responsive design in action.</p>
+</body>
+</html>
+                </textarea>
+            </div>
+            <div class="textarea-container">
+                <h3>CSS</h3>
+                <textarea id="cssInput" placeholder="Enter your CSS code here...">
+body { font-family: Arial, sans-serif; padding: 20px; }
+img { max-width: 100%; height: auto; }
+@media (max-width: 600px) { h1 { font-size: 24px; } p { font-size: 14px; } }
+@media (min-width: 601px) and (max-width: 768px) { h1 { font-size: 28px; } p { font-size: 16px; } }
+@media (min-width: 769px) { h1 { font-size: 32px; } p { font-size: 18px; } }
+                </textarea>
+            </div>
+            <div class="textarea-container">
+                <h3>JavaScript</h3>
+                <textarea id="jsInput" placeholder="Enter your JavaScript code here...">
+document.addEventListener('DOMContentLoaded', () => {
+    const h1 = document.querySelector('h1');
+    h1.addEventListener('click', () => {
+        h1.style.color = '#' + Math.floor(Math.random()*16777215).toString(16);
+    });
+});
+                </textarea>
+            </div>
+        </div>
         <div class="button-group">
             <button class="clear" onclick="clearCode()">Clear</button>
             <button class="paste" onclick="pasteCode()">Paste</button>
@@ -155,50 +200,90 @@ Made By Henry
     </div>
     <script>
         function updatePreview() {
-            const code = document.getElementById('codeInput').value;
+            console.log('Updating preview...');
+            const htmlCode = document.getElementById('htmlInput').value;
+            const cssCode = document.getElementById('cssInput').value;
+            const jsCode = document.getElementById('jsInput').value;
             const iframe = document.getElementById('previewFrame');
-            iframe.contentDocument.open();
-            iframe.contentDocument.write(code);
-            iframe.contentDocument.close();
+            const doc = iframe.contentDocument;
+            doc.open();
+            doc.write(`
+                ${htmlCode.replace('</head>', `<style>${cssCode}</style></head>`)}
+                <script>${jsCode}</script>
+            `);
+            doc.close();
         }
 
         function setPreview(device) {
+            console.log('Setting preview to:', device);
             const previewWindow = document.getElementById('previewWindow');
-            // Remove existing device classes
-            previewWindow.classList.remove('phone', 'tablet', 'laptop');
-            // Add the new device class
-            previewWindow.classList.add(device);
+            if (previewWindow) {
+                previewWindow.classList.remove('phone', 'tablet', 'laptop');
+                previewWindow.classList.add(device);
+            } else {
+                console.error('Preview window not found');
+            }
         }
 
         function clearCode() {
-            const codeInput = document.getElementById('codeInput');
-            codeInput.value = '';
-            updatePreview();
+            const activeElement = document.activeElement;
+            if (activeElement.id === 'htmlInput' || activeElement.id === 'cssInput' || activeElement.id === 'jsInput') {
+                activeElement.value = '';
+                updatePreview();
+                console.log('Cleared:', activeElement.id);
+            } else {
+                alert('Please focus on a textarea (HTML, CSS, or JS) to clear.');
+                console.log('No textarea focused for clear');
+            }
         }
 
         function pasteCode() {
-            navigator.clipboard.readText().then(text => {
-                const codeInput = document.getElementById('codeInput');
-                codeInput.value = text;
-                updatePreview();
-            }).catch(err => {
-                console.error('Failed to paste: ', err);
-                alert('Failed to paste content. Please ensure clipboard access is allowed.');
-            });
+            const activeElement = document.activeElement;
+            if (activeElement.id === 'htmlInput' || activeElement.id === 'cssInput' || activeElement.id === 'jsInput') {
+                navigator.clipboard.readText().then(text => {
+                    activeElement.value = text;
+                    updatePreview();
+                    console.log('Pasted into:', activeElement.id);
+                }).catch(err => {
+                    console.error('Failed to paste:', err);
+                    alert('Failed to paste content. Please ensure clipboard access is allowed.');
+                });
+            } else {
+                alert('Please focus on a textarea (HTML, CSS, or JS) to paste.');
+                console.log('No textarea focused for paste');
+            }
         }
 
         function copyCode() {
-            const codeInput = document.getElementById('codeInput');
-            navigator.clipboard.writeText(codeInput.value).then(() => {
-                alert('Code copied to clipboard!');
-            }).catch(err => {
-                console.error('Failed to copy: ', err);
-                alert('Failed to copy content.');
-            });
+            const activeElement = document.activeElement;
+            if (activeElement.id === 'htmlInput' || activeElement.id === 'cssInput' || activeElement.id === 'jsInput') {
+                const text = activeElement.value;
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('Code copied to clipboard!');
+                    console.log('Copied from:', activeElement.id);
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    alert('Failed to copy content.');
+                });
+            } else {
+                alert('Please focus on a textarea (HTML, CSS, or JS) to copy.');
+                console.log('No textarea focused for copy');
+            }
         }
 
-        document.getElementById('codeInput').addEventListener('input', updatePreview);
-        updatePreview();
+        document.addEventListener('DOMContentLoaded', () => {
+            const htmlInput = document.getElementById('htmlInput');
+            const cssInput = document.getElementById('cssInput');
+            const jsInput = document.getElementById('jsInput');
+            if (htmlInput && cssInput && jsInput) {
+                htmlInput.addEventListener('input', updatePreview);
+                cssInput.addEventListener('input', updatePreview);
+                jsInput.addEventListener('input', updatePreview);
+                updatePreview();
+            } else {
+                console.error('One or more textarea elements not found');
+            }
+        });
     </script>
 </body>
 </html>
