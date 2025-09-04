@@ -11,7 +11,7 @@
             padding: 0;
             background-color: #f4f4f4;
             height: 100vh;
-            overflow: hidden; /* Prevent body scrolling */
+            overflow: hidden;
         }
         .preview-controls {
             position: fixed;
@@ -37,14 +37,14 @@
         }
         .preview {
             position: fixed;
-            top: 60px; /* Below fixed buttons */
-            bottom: 110px; /* Above fixed textarea */
+            top: 60px;
+            bottom: 110px; /* Reduced to save space */
             left: 20px;
             right: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
-            overflow: visible; /* Ensure no clipping */
+            overflow: visible;
         }
         .preview-window {
             border: 2px solid #333;
@@ -54,7 +54,7 @@
             max-height: 100%;
             width: 100%;
             height: 100%;
-            overflow: auto; /* Allow scrolling within preview if needed */
+            overflow: auto;
         }
         .preview-window iframe {
             width: 100%;
@@ -77,10 +77,11 @@
         .editor h3 {
             margin: 0;
             font-size: 14px;
+            flex: 0 0 auto;
         }
         .editor textarea {
             flex: 1;
-            height: 60px; /* Even smaller textarea */
+            height: 60px;
             font-family: monospace;
             font-size: 12px;
             padding: 8px;
@@ -88,16 +89,35 @@
             border-radius: 5px;
             resize: none;
         }
+        .editor .button-group {
+            display: flex;
+            gap: 5px;
+        }
         .editor button {
-            padding: 8px 16px;
+            padding: 6px 12px;
             cursor: pointer;
             border: none;
-            background-color: #dc3545;
-            color: white;
             border-radius: 5px;
+            color: white;
+            width: 80px;
         }
-        .editor button:hover {
+        .editor button.clear {
+            background-color: #dc3545;
+        }
+        .editor button.clear:hover {
             background-color: #b02a37;
+        }
+        .editor button.paste {
+            background-color: #28a745;
+        }
+        .editor button.paste:hover {
+            background-color: #218838;
+        }
+        .editor button.copy {
+            background-color: #ffc107;
+        }
+        .editor button.copy:hover {
+            background-color: #e0a800;
         }
         .phone {
             width: 360px;
@@ -145,7 +165,11 @@
 </body>
 </html>
         </textarea>
-        <button onclick="clearCode()">Clear</button>
+        <div class="button-group">
+            <button class="clear" onclick="clearCode()">Clear</button>
+            <button class="paste" onclick="pasteCode()">Paste</button>
+            <button class="copy" onclick="copyCode()">Copy</button>
+        </div>
     </div>
     <script>
         function updatePreview() {
@@ -156,15 +180,31 @@
             iframe.contentDocument.close();
         }
 
-        function setPreview(device) {
-            const previewWindow = document.getElementById('previewWindow');
-            previewWindow.className = 'preview-window ' + device;
-        }
-
         function clearCode() {
             const codeInput = document.getElementById('codeInput');
             codeInput.value = '';
             updatePreview();
+        }
+
+        function pasteCode() {
+            navigator.clipboard.readText().then(text => {
+                const codeInput = document.getElementById('codeInput');
+                codeInput.value = text;
+                updatePreview();
+            }).catch(err => {
+                console.error('Failed to paste: ', err);
+                alert('Failed to paste content. Please ensure clipboard access is allowed.');
+            });
+        }
+
+        function copyCode() {
+            const codeInput = document.getElementById('codeInput');
+            navigator.clipboard.writeText(codeInput.value).then(() => {
+                alert('Code copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy content.');
+            });
         }
 
         document.getElementById('codeInput').addEventListener('input', updatePreview);
