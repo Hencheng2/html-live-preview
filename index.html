@@ -35,6 +35,9 @@
         .preview-controls button:hover {
             background-color: #0056b3;
         }
+        .preview-controls button.active {
+            background-color: #28a745;
+        }
         .preview {
             position: fixed;
             top: 60px;
@@ -55,16 +58,16 @@
             overflow: auto;
         }
         .preview-window.phone {
-            width: 360px !important;
-            height: 640px !important;
+            width: 360px;
+            height: 640px;
         }
         .preview-window.tablet {
-            width: 768px !important;
-            height: 1024px !important;
+            width: 768px;
+            height: 1024px;
         }
         .preview-window.laptop {
-            width: 1366px !important;
-            height: 768px !important;
+            width: 1366px;
+            height: 768px;
         }
         .preview-window iframe {
             width: 100%;
@@ -144,9 +147,9 @@
 </head>
 <body>
     <div class="preview-controls">
-        <button onclick="setPreview('phone')">Phone (360x640)</button>
-        <button onclick="setPreview('tablet')">Tablet (768x1024)</button>
-        <button onclick="setPreview('laptop')">Laptop (1366x768)</button>
+        <button id="phoneBtn" onclick="setPreview('phone')">Phone (360x640)</button>
+        <button id="tabletBtn" onclick="setPreview('tablet')">Tablet (768x1024)</button>
+        <button id="laptopBtn" class="active" onclick="setPreview('laptop')">Laptop (1366x768)</button>
     </div>
     <div class="preview">
         <div class="preview-window laptop" id="previewWindow">
@@ -157,19 +160,7 @@
         <div class="textarea-group">
             <div class="textarea-container">
                 <h3>HTML</h3>
-                <textarea id="htmlInput" placeholder="Enter your HTML code here...">
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Sample Page</title>
-</head>
-<body>
-    <h1>Sample Page</h1>
-    <img src="https://via.placeholder.com/800x400" alt="Sample Image">
-    <p>This is a sample webpage. Resize the preview to see responsive design in action.</p>
-</body>
-</html>
-                </textarea>
+                <textarea id="htmlInput" placeholder="Enter your HTML code here..."></textarea>
                 <div class="button-group">
                     <button class="clear" onclick="clearCode('htmlInput')">Clear</button>
                     <button class="paste" onclick="pasteCode('htmlInput')">Paste</button>
@@ -178,13 +169,7 @@
             </div>
             <div class="textarea-container">
                 <h3>CSS</h3>
-                <textarea id="cssInput" placeholder="Enter your CSS code here...">
-body { font-family: Arial, sans-serif; padding: 20px; }
-img { max-width: 100%; height: auto; }
-@media (max-width: 600px) { h1 { font-size: 24px; } p { font-size: 14px; } }
-@media (min-width: 601px) and (max-width: 768px) { h1 { font-size: 28px; } p { font-size: 16px; } }
-@media (min-width: 769px) { h1 { font-size: 32px; } p { font-size: 18px; } }
-                </textarea>
+                <textarea id="cssInput" placeholder="Enter your CSS code here..."></textarea>
                 <div class="button-group">
                     <button class="clear" onclick="clearCode('cssInput')">Clear</button>
                     <button class="paste" onclick="pasteCode('cssInput')">Paste</button>
@@ -193,14 +178,7 @@ img { max-width: 100%; height: auto; }
             </div>
             <div class="textarea-container">
                 <h3>JavaScript</h3>
-                <textarea id="jsInput" placeholder="Enter your JavaScript code here...">
-document.addEventListener('DOMContentLoaded', () => {
-    const h1 = document.querySelector('h1');
-    h1.addEventListener('click', () => {
-        h1.style.color = '#' + Math.floor(Math.random()*16777215).toString(16);
-    });
-});
-                </textarea>
+                <textarea id="jsInput" placeholder="Enter your JavaScript code here..."></textarea>
                 <div class="button-group">
                     <button class="clear" onclick="clearCode('jsInput')">Clear</button>
                     <button class="paste" onclick="pasteCode('jsInput')">Paste</button>
@@ -211,109 +189,101 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <script>
         function updatePreview() {
-            console.log('Updating preview...');
             const htmlInput = document.getElementById('htmlInput');
             const cssInput = document.getElementById('cssInput');
             const jsInput = document.getElementById('jsInput');
             const iframe = document.getElementById('previewFrame');
             if (!htmlInput || !cssInput || !jsInput || !iframe) {
-                console.error('Missing required elements:', { htmlInput, cssInput, jsInput, iframe });
+                console.error('Missing required elements');
                 return;
             }
-            const htmlCode = htmlInput.value;
-            const cssCode = cssInput.value;
-            const jsCode = jsInput.value;
-            const doc = iframe.contentDocument;
+            const htmlCode = htmlInput.value || '<html><body></body></html>';
+            const cssCode = cssInput.value || '';
+            const jsCode = jsInput.value || '';
+            const fullHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>${cssCode}</style>
+                </head>
+                <body>
+                    ${htmlCode}
+                    <script>${jsCode}<\/script>
+                </body>
+                </html>
+            `;
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
             doc.open();
-            doc.write(`
-                ${htmlCode.replace('</head>', `<style>${cssCode}</style></head>`)}
-                <script>${jsCode}</script>
-            `);
+            doc.write(fullHtml);
             doc.close();
         }
 
         function setPreview(device) {
-            console.log('Setting preview to:', device);
             const previewWindow = document.getElementById('previewWindow');
+            const buttons = {
+                'phone': document.getElementById('phoneBtn'),
+                'tablet': document.getElementById('tabletBtn'),
+                'laptop': document.getElementById('laptopBtn')
+            };
+            
             if (previewWindow) {
                 previewWindow.classList.remove('phone', 'tablet', 'laptop');
                 previewWindow.classList.add(device);
-            } else {
-                console.error('Preview window not found');
+                
+                // Update button states
+                Object.values(buttons).forEach(btn => btn.classList.remove('active'));
+                buttons[device].classList.add('active');
+                
+                updatePreview(); // Refresh preview after size change
             }
         }
 
         function clearCode(textareaId) {
-            console.log('Clear button clicked for:', textareaId);
             const textarea = document.getElementById(textareaId);
             if (textarea) {
                 textarea.value = '';
                 updatePreview();
-                console.log('Cleared:', textareaId);
             } else {
-                console.error('Textarea not found:', textareaId);
                 alert('Error: Textarea not found.');
             }
         }
 
-        function pasteCode(textareaId) {
-            console.log('Paste button clicked for:', textareaId);
+        async function pasteCode(textareaId) {
             const textarea = document.getElementById(textareaId);
             if (!textarea) {
-                console.error('Textarea not found:', textareaId);
                 alert('Error: Textarea not found.');
                 return;
             }
-            if (!navigator.clipboard) {
-                console.error('Clipboard API unavailable');
-                alert('Clipboard API not supported in this browser or context.');
-                return;
-            }
-            navigator.clipboard.readText().then(text => {
+            try {
+                const text = await navigator.clipboard.readText();
                 textarea.value = text;
                 updatePreview();
-                console.log('Pasted into:', textareaId);
-            }).catch(err => {
-                console.error('Failed to paste:', err);
+            } catch (err) {
                 alert('Failed to paste content. Ensure clipboard access is allowed.');
-            });
+            }
         }
 
         function copyCode(textareaId) {
-            console.log('Copy button clicked for:', textareaId);
             const textarea = document.getElementById(textareaId);
             if (!textarea) {
-                console.error('Textarea not found:', textareaId);
                 alert('Error: Textarea not found.');
-                return;
-            }
-            if (!navigator.clipboard) {
-                console.error('Clipboard API unavailable');
-                alert('Clipboard API not supported in this browser or context.');
                 return;
             }
             const text = textarea.value;
             navigator.clipboard.writeText(text).then(() => {
                 alert('Code copied to clipboard!');
-                console.log('Copied from:', textareaId);
-            }).catch(err => {
-                console.error('Failed to copy:', err);
+            }).catch(() => {
                 alert('Failed to copy content.');
             });
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, setting up event listeners');
-            const htmlInput = document.getElementById('htmlInput');
-            const cssInput = document.getElementById('cssInput');
-            const jsInput = document.getElementById('jsInput');
-            if (htmlInput && cssInput && jsInput) {
-                htmlInput.addEventListener('input', updatePreview);
-                cssInput.addEventListener('input', updatePreview);
-                jsInput.addEventListener('input', updatePreview);
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputs = ['htmlInput', 'cssInput', 'jsInput'].map(id => document.getElementById(id));
+            if (inputs.every(input => input)) {
+                inputs.forEach(input => input.addEventListener('input', updatePreview));
                 updatePreview();
             } else {
-                console.error('One or more textarea elements not found:', { htmlInput, cssInput, jsInput });
+                console.error('One or more textarea elements not found');
             }
         });
     </script>
