@@ -38,7 +38,7 @@
         .preview {
             position: fixed;
             top: 60px;
-            bottom: 130px;
+            bottom: 160px;
             left: 20px;
             right: 20px;
             display: flex;
@@ -92,6 +92,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            gap: 5px;
         }
         .editor h3 {
             margin: 0;
@@ -111,7 +112,7 @@
         .editor .button-group {
             display: flex;
             gap: 5px;
-            justify-content: flex-end;
+            justify-content: center;
         }
         .editor button {
             padding: 6px 12px;
@@ -169,6 +170,11 @@
 </body>
 </html>
                 </textarea>
+                <div class="button-group">
+                    <button class="clear" onclick="clearCode('htmlInput')">Clear</button>
+                    <button class="paste" onclick="pasteCode('htmlInput')">Paste</button>
+                    <button class="copy" onclick="copyCode('htmlInput')">Copy</button>
+                </div>
             </div>
             <div class="textarea-container">
                 <h3>CSS</h3>
@@ -179,6 +185,11 @@ img { max-width: 100%; height: auto; }
 @media (min-width: 601px) and (max-width: 768px) { h1 { font-size: 28px; } p { font-size: 16px; } }
 @media (min-width: 769px) { h1 { font-size: 32px; } p { font-size: 18px; } }
                 </textarea>
+                <div class="button-group">
+                    <button class="clear" onclick="clearCode('cssInput')">Clear</button>
+                    <button class="paste" onclick="pasteCode('cssInput')">Paste</button>
+                    <button class="copy" onclick="copyCode('cssInput')">Copy</button>
+                </div>
             </div>
             <div class="textarea-container">
                 <h3>JavaScript</h3>
@@ -190,21 +201,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
                 </textarea>
+                <div class="button-group">
+                    <button class="clear" onclick="clearCode('jsInput')">Clear</button>
+                    <button class="paste" onclick="pasteCode('jsInput')">Paste</button>
+                    <button class="copy" onclick="copyCode('jsInput')">Copy</button>
+                </div>
             </div>
-        </div>
-        <div class="button-group">
-            <button class="clear" onclick="clearCode()">Clear</button>
-            <button class="paste" onclick="pasteCode()">Paste</button>
-            <button class="copy" onclick="copyCode()">Copy</button>
         </div>
     </div>
     <script>
         function updatePreview() {
             console.log('Updating preview...');
-            const htmlCode = document.getElementById('htmlInput').value;
-            const cssCode = document.getElementById('cssInput').value;
-            const jsCode = document.getElementById('jsInput').value;
+            const htmlInput = document.getElementById('htmlInput');
+            const cssInput = document.getElementById('cssInput');
+            const jsInput = document.getElementById('jsInput');
             const iframe = document.getElementById('previewFrame');
+            if (!htmlInput || !cssInput || !jsInput || !iframe) {
+                console.error('Missing required elements:', { htmlInput, cssInput, jsInput, iframe });
+                return;
+            }
+            const htmlCode = htmlInput.value;
+            const cssCode = cssInput.value;
+            const jsCode = jsInput.value;
             const doc = iframe.contentDocument;
             doc.open();
             doc.write(`
@@ -225,53 +243,67 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        function clearCode() {
-            const activeElement = document.activeElement;
-            if (activeElement.id === 'htmlInput' || activeElement.id === 'cssInput' || activeElement.id === 'jsInput') {
-                activeElement.value = '';
+        function clearCode(textareaId) {
+            console.log('Clear button clicked for:', textareaId);
+            const textarea = document.getElementById(textareaId);
+            if (textarea) {
+                textarea.value = '';
                 updatePreview();
-                console.log('Cleared:', activeElement.id);
+                console.log('Cleared:', textareaId);
             } else {
-                alert('Please focus on a textarea (HTML, CSS, or JS) to clear.');
-                console.log('No textarea focused for clear');
+                console.error('Textarea not found:', textareaId);
+                alert('Error: Textarea not found.');
             }
         }
 
-        function pasteCode() {
-            const activeElement = document.activeElement;
-            if (activeElement.id === 'htmlInput' || activeElement.id === 'cssInput' || activeElement.id === 'jsInput') {
-                navigator.clipboard.readText().then(text => {
-                    activeElement.value = text;
-                    updatePreview();
-                    console.log('Pasted into:', activeElement.id);
-                }).catch(err => {
-                    console.error('Failed to paste:', err);
-                    alert('Failed to paste content. Please ensure clipboard access is allowed.');
-                });
-            } else {
-                alert('Please focus on a textarea (HTML, CSS, or JS) to paste.');
-                console.log('No textarea focused for paste');
+        function pasteCode(textareaId) {
+            console.log('Paste button clicked for:', textareaId);
+            const textarea = document.getElementById(textareaId);
+            if (!textarea) {
+                console.error('Textarea not found:', textareaId);
+                alert('Error: Textarea not found.');
+                return;
             }
+            if (!navigator.clipboard) {
+                console.error('Clipboard API unavailable');
+                alert('Clipboard API not supported in this browser or context.');
+                return;
+            }
+            navigator.clipboard.readText().then(text => {
+                textarea.value = text;
+                updatePreview();
+                console.log('Pasted into:', textareaId);
+            }).catch(err => {
+                console.error('Failed to paste:', err);
+                alert('Failed to paste content. Ensure clipboard access is allowed.');
+            });
         }
 
-        function copyCode() {
-            const activeElement = document.activeElement;
-            if (activeElement.id === 'htmlInput' || activeElement.id === 'cssInput' || activeElement.id === 'jsInput') {
-                const text = activeElement.value;
-                navigator.clipboard.writeText(text).then(() => {
-                    alert('Code copied to clipboard!');
-                    console.log('Copied from:', activeElement.id);
-                }).catch(err => {
-                    console.error('Failed to copy:', err);
-                    alert('Failed to copy content.');
-                });
-            } else {
-                alert('Please focus on a textarea (HTML, CSS, or JS) to copy.');
-                console.log('No textarea focused for copy');
+        function copyCode(textareaId) {
+            console.log('Copy button clicked for:', textareaId);
+            const textarea = document.getElementById(textareaId);
+            if (!textarea) {
+                console.error('Textarea not found:', textareaId);
+                alert('Error: Textarea not found.');
+                return;
             }
+            if (!navigator.clipboard) {
+                console.error('Clipboard API unavailable');
+                alert('Clipboard API not supported in this browser or context.');
+                return;
+            }
+            const text = textarea.value;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Code copied to clipboard!');
+                console.log('Copied from:', textareaId);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy content.');
+            });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, setting up event listeners');
             const htmlInput = document.getElementById('htmlInput');
             const cssInput = document.getElementById('cssInput');
             const jsInput = document.getElementById('jsInput');
@@ -281,7 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 jsInput.addEventListener('input', updatePreview);
                 updatePreview();
             } else {
-                console.error('One or more textarea elements not found');
+                console.error('One or more textarea elements not found:', { htmlInput, cssInput, jsInput });
             }
         });
     </script>
