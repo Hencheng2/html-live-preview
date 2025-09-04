@@ -10,9 +10,8 @@
             margin: 0;
             padding: 0;
             background-color: #f4f4f4;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
+            height: 100vh;
+            overflow: hidden; /* Prevent body scrolling */
         }
         .preview-controls {
             position: fixed;
@@ -37,12 +36,16 @@
             background-color: #0056b3;
         }
         .preview {
-            flex: 1;
+            position: fixed;
+            top: 60px; /* Below fixed buttons */
+            bottom: 150px; /* Above fixed textarea */
+            left: 0;
+            right: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 60px 20px 20px; /* Top padding for fixed buttons */
             overflow: auto;
+            padding: 20px;
         }
         .preview-window {
             border: 2px solid #333;
@@ -58,20 +61,24 @@
             border: none;
         }
         .editor {
-            width: 100%;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
             padding: 10px;
             background-color: #fff;
             border-top: 2px solid #333;
+            z-index: 1000;
         }
         .editor textarea {
             width: 100%;
-            height: 100px; /* Smaller textarea */
+            height: 100px; /* Small textarea */
             font-family: monospace;
             font-size: 12px;
             padding: 8px;
             border: 1px solid #333;
             border-radius: 5px;
-            resize: vertical;
+            resize: none; /* Prevent resizing */
         }
         .phone {
             width: 360px;
