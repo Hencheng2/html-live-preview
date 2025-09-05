@@ -9,7 +9,8 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
             height: 100vh;
             overflow: hidden;
         }
@@ -18,7 +19,7 @@
             top: 0;
             left: 0;
             right: 0;
-            background-color: #333;
+            background-color: #2d2d2d;
             padding: 10px;
             text-align: center;
             z-index: 1000;
@@ -28,15 +29,15 @@
             margin: 5px;
             cursor: pointer;
             border: none;
-            background-color: #007BFF;
-            color: white;
+            background-color: #3b82f6;
+            color: #ffffff;
             border-radius: 5px;
         }
         .preview-controls button:hover {
-            background-color: #0056b3;
+            background-color: #2563eb;
         }
         .preview-controls button.active {
-            background-color: #28a745;
+            background-color: #16a34a;
         }
         .preview {
             position: fixed;
@@ -50,8 +51,8 @@
             overflow: visible;
         }
         .preview-window {
-            border: 2px solid #333;
-            background-color: white;
+            border: 2px solid #3f3f3f;
+            background-color: #252525;
             transition: width 0.3s ease, height 0.3s ease;
             max-width: 100%;
             max-height: 100%;
@@ -73,6 +74,7 @@
             width: 100%;
             height: 100%;
             border: none;
+            background-color: #ffffff;
         }
         .editor {
             position: fixed;
@@ -80,8 +82,8 @@
             left: 0;
             right: 0;
             padding: 10px;
-            background-color: #fff;
-            border-top: 2px solid #333;
+            background-color: #2d2d2d;
+            border-top: 2px solid #3f3f3f;
             z-index: 1000;
             display: flex;
             flex-direction: column;
@@ -101,6 +103,7 @@
             margin: 0;
             font-size: 12px;
             text-align: center;
+            color: #e0e0e0;
         }
         .editor textarea {
             width: 100%;
@@ -108,9 +111,14 @@
             font-family: monospace;
             font-size: 12px;
             padding: 8px;
-            border: 1px solid #333;
+            border: 1px solid #3f3f3f;
             border-radius: 5px;
             resize: none;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+        .editor textarea::placeholder {
+            color: #6b7280;
         }
         .editor .button-group {
             display: flex;
@@ -122,26 +130,26 @@
             cursor: pointer;
             border: none;
             border-radius: 5px;
-            color: white;
+            color: #ffffff;
             width: 80px;
         }
         .editor button.clear {
-            background-color: #dc3545;
+            background-color: #dc2626;
         }
         .editor button.clear:hover {
-            background-color: #b02a37;
+            background-color: #b91c1c;
         }
         .editor button.paste {
-            background-color: #28a745;
+            background-color: #16a34a;
         }
         .editor button.paste:hover {
-            background-color: #218838;
+            background-color: #15803d;
         }
         .editor button.copy {
-            background-color: #ffc107;
+            background-color: #f59e0b;
         }
         .editor button.copy:hover {
-            background-color: #e0a800;
+            background-color: #d97706;
         }
     </style>
 </head>
