@@ -151,6 +151,12 @@
         .editor button.copy:hover {
             background-color: #d97706;
         }
+        .editor button.distinguish {
+            background-color: #8b5cf6;
+        }
+        .editor button.distinguish:hover {
+            background-color: #7c3aed;
+        }
     </style>
 </head>
 <body>
@@ -173,6 +179,7 @@
                     <button class="clear" onclick="clearCode('htmlInput')">Clear</button>
                     <button class="paste" onclick="pasteCode('htmlInput')">Paste</button>
                     <button class="copy" onclick="copyCode('htmlInput')">Copy</button>
+                    <button class="distinguish" onclick="distinguishCode()">Distinguish</button>
                 </div>
             </div>
             <div class="textarea-container">
@@ -283,6 +290,44 @@
             }).catch(() => {
                 alert('Failed to copy content.');
             });
+        }
+
+        function distinguishCode() {
+            const htmlInput = document.getElementById('htmlInput');
+            const cssInput = document.getElementById('cssInput');
+            const jsInput = document.getElementById('jsInput');
+            
+            if (!htmlInput || !cssInput || !jsInput) {
+                alert('Error: Textarea not found.');
+                return;
+            }
+
+            let htmlContent = htmlInput.value;
+            let cssContent = '';
+            let jsContent = '';
+
+            // Extract CSS from <style> tags
+            const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+            let styleMatch;
+            while ((styleMatch = styleRegex.exec(htmlContent)) !== null) {
+                cssContent += styleMatch[1].trim() + '\n';
+                htmlContent = htmlContent.replace(styleMatch[0], '');
+            }
+
+            // Extract JavaScript from <script> tags
+            const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
+            let scriptMatch;
+            while ((scriptMatch = scriptRegex.exec(htmlContent)) !== null) {
+                jsContent += scriptMatch[1].trim() + '\n';
+                htmlContent = htmlContent.replace(scriptMatch[0], '');
+            }
+
+            // Update textareas
+            htmlInput.value = htmlContent.trim();
+            cssInput.value = cssContent.trim();
+            jsInput.value = jsContent.trim();
+
+            updatePreview();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
