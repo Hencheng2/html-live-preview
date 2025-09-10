@@ -157,6 +157,15 @@
         .editor button.distinguish:hover {
             background-color: #7c3aed;
         }
+        .editor button.upload {
+            background-color: #d97706;
+        }
+        .editor button.upload:hover {
+            background-color: #b91c1c;
+        }
+        .editor input[type="file"] {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -180,6 +189,8 @@
                     <button class="paste" onclick="pasteCode('htmlInput')">Paste</button>
                     <button class="copy" onclick="copyCode('htmlInput')">Copy</button>
                     <button class="distinguish" onclick="distinguishCode()">Distinguish</button>
+                    <label for="htmlUpload" class="upload" style="padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: #ffffff; width: 80px; text-align: center;">Upload</label>
+                    <input type="file" id="htmlUpload" accept=".html,.htm" onchange="uploadCode('htmlInput', this)">
                 </div>
             </div>
             <div class="textarea-container">
@@ -328,6 +339,25 @@
             jsInput.value = jsContent.trim();
 
             updatePreview();
+        }
+
+        function uploadCode(textareaId, input) {
+            const textarea = document.getElementById(textareaId);
+            if (!textarea || !input.files || input.files.length === 0) {
+                alert('Error: No file selected or textarea not found.');
+                return;
+            }
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                textarea.value = e.target.result;
+                updatePreview();
+                input.value = ''; // Reset file input
+            };
+            reader.onerror = function() {
+                alert('Failed to read the file.');
+            };
+            reader.readAsText(file);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
