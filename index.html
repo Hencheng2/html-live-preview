@@ -163,6 +163,18 @@
         .editor button.upload:hover {
             background-color: #b91c1c;
         }
+        .editor button.fix {
+            background-color: #0ea5e9;
+        }
+        .editor button.fix:hover {
+            background-color: #0284c7;
+        }
+        .editor button.merge {
+            background-color: #10b981;
+        }
+        .editor button.merge:hover {
+            background-color: #059669;
+        }
         .editor input[type="file"] {
             display: none;
         }
@@ -189,6 +201,10 @@
                     <button class="paste" onclick="pasteCode('htmlInput')">Paste</button>
                     <button class="copy" onclick="copyCode('htmlInput')">Copy</button>
                     <button class="distinguish" onclick="distinguishCode()">Distinguish</button>
+                    <!-- NEW BUTTONS -->
+                    <button class="fix" onclick="fixResponsive()">Fix</button>
+                    <button class="merge" onclick="mergeCode()">Merge</button>
+                    <!-- END NEW BUTTONS -->
                     <label for="htmlUpload" class="upload" style="padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: #ffffff; width: 80px; text-align: center;">Upload</label>
                     <input type="file" id="htmlUpload" accept=".html,.htm" onchange="uploadCode('htmlInput', this)">
                 </div>
@@ -358,6 +374,48 @@
                 alert('Failed to read the file.');
             };
             reader.readAsText(file);
+        }
+
+        function fixResponsive() {
+            const htmlInput = document.getElementById('htmlInput');
+            if (!htmlInput) return;
+            let htmlContent = htmlInput.value;
+            if (!/<meta\s+name=["']viewport["']/i.test(htmlContent)) {
+                htmlContent = htmlContent.replace(/<head[^>]*>/i,
+                    match => `${match}\n<meta name="viewport" content="width=device-width, initial-scale=1.0">`);
+            }
+            const responsiveCSS = `
+<style>
+img, iframe, video { max-width: 100%; height: auto; }
+@media (max-width: 768px) { body { font-size: 14px; } }
+@media (max-width: 480px) { body { font-size: 12px; } }
+</style>
+`;
+            if (!/img,\s*iframe,\s*video/.test(htmlContent)) {
+                htmlContent = htmlContent.replace(/<\/head>/i, responsiveCSS + "\n</head>");
+            }
+            htmlInput.value = htmlContent;
+            updatePreview();
+        }
+
+        function mergeCode() {
+            const htmlInput = document.getElementById('htmlInput');
+            const cssInput = document.getElementById('cssInput');
+            const jsInput = document.getElementById('jsInput');
+            if (!htmlInput || !cssInput || !jsInput) return;
+            let htmlContent = htmlInput.value;
+            if (cssInput.value.trim()) {
+                htmlContent = htmlContent.replace(/<\/head>/i,
+                    `<style>\n${cssInput.value}\n</style>\n</head>`);
+            }
+            if (jsInput.value.trim()) {
+                htmlContent = htmlContent.replace(/<\/body>/i,
+                    `<script>\n${jsInput.value}\n</script>\n</body>`);
+            }
+            htmlInput.value = htmlContent;
+            cssInput.value = "";
+            jsInput.value = "";
+            updatePreview();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
