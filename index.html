@@ -124,7 +124,6 @@
             display: flex;
             gap: 5px;
             justify-content: center;
-            flex-wrap: wrap;
         }
         .editor button {
             padding: 6px 12px;
@@ -164,18 +163,6 @@
         .editor button.upload:hover {
             background-color: #b91c1c;
         }
-        .editor button.fix {
-            background-color: #0ea5e9;
-        }
-        .editor button.fix:hover {
-            background-color: #0284c7;
-        }
-        .editor button.merge {
-            background-color: #10b981;
-        }
-        .editor button.merge:hover {
-            background-color: #059669;
-        }
         .editor input[type="file"] {
             display: none;
         }
@@ -202,10 +189,6 @@
                     <button class="paste" onclick="pasteCode('htmlInput')">Paste</button>
                     <button class="copy" onclick="copyCode('htmlInput')">Copy</button>
                     <button class="distinguish" onclick="distinguishCode()">Distinguish</button>
-                    <!-- NEW BUTTONS -->
-                    <button class="fix" onclick="fixResponsive()">Fix</button>
-                    <button class="merge" onclick="mergeCode()">Merge</button>
-                    <!-- END NEW BUTTONS -->
                     <label for="htmlUpload" class="upload" style="padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: #ffffff; width: 80px; text-align: center;">Upload</label>
                     <input type="file" id="htmlUpload" accept=".html,.htm" onchange="uploadCode('htmlInput', this)">
                 </div>
@@ -236,7 +219,10 @@
             const cssInput = document.getElementById('cssInput');
             const jsInput = document.getElementById('jsInput');
             const iframe = document.getElementById('previewFrame');
-            if (!htmlInput || !cssInput || !jsInput || !iframe) return;
+            if (!htmlInput || !cssInput || !jsInput || !iframe) {
+                console.error('Missing required elements');
+                return;
+            }
             const htmlCode = htmlInput.value || '<html><body></body></html>';
             const cssCode = cssInput.value || '';
             const jsCode = jsInput.value || '';
@@ -265,12 +251,16 @@
                 'tablet': document.getElementById('tabletBtn'),
                 'laptop': document.getElementById('laptopBtn')
             };
+            
             if (previewWindow) {
                 previewWindow.classList.remove('phone', 'tablet', 'laptop');
                 previewWindow.classList.add(device);
+                
+                // Update button states
                 Object.values(buttons).forEach(btn => btn.classList.remove('active'));
                 buttons[device].classList.add('active');
-                updatePreview();
+                
+                updatePreview(); // Refresh preview after size change
             }
         }
 
@@ -279,25 +269,36 @@
             if (textarea) {
                 textarea.value = '';
                 updatePreview();
+            } else {
+                alert('Error: Textarea not found.');
             }
         }
 
         async function pasteCode(textareaId) {
             const textarea = document.getElementById(textareaId);
-            if (!textarea) return;
+            if (!textarea) {
+                alert('Error: Textarea not found.');
+                return;
+            }
             try {
                 const text = await navigator.clipboard.readText();
                 textarea.value = text;
                 updatePreview();
             } catch (err) {
-                alert('Clipboard access denied.');
+                alert('Failed to paste content. Ensure clipboard access is allowed.');
             }
         }
 
         function copyCode(textareaId) {
             const textarea = document.getElementById(textareaId);
-            if (!textarea) return;
-            navigator.clipboard.writeText(textarea.value).catch(() => {
+            if (!textarea) {
+                alert('Error: Textarea not found.');
+                return;
+            }
+            const text = textarea.value;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Code copied to clipboard!');
+            }).catch(() => {
                 alert('Failed to copy content.');
             });
         }
@@ -306,12 +307,17 @@
             const htmlInput = document.getElementById('htmlInput');
             const cssInput = document.getElementById('cssInput');
             const jsInput = document.getElementById('jsInput');
-            if (!htmlInput || !cssInput || !jsInput) return;
+            
+            if (!htmlInput || !cssInput || !jsInput) {
+                alert('Error: Textarea not found.');
+                return;
+            }
 
             let htmlContent = htmlInput.value;
             let cssContent = '';
             let jsContent = '';
 
+            // Extract CSS from <style> tags
             const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
             let styleMatch;
             while ((styleMatch = styleRegex.exec(htmlContent)) !== null) {
@@ -319,6 +325,7 @@
                 htmlContent = htmlContent.replace(styleMatch[0], '');
             }
 
+            // Extract JavaScript from <script> tags
             const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
             let scriptMatch;
             while ((scriptMatch = scriptRegex.exec(htmlContent)) !== null) {
@@ -326,73 +333,41 @@
                 htmlContent = htmlContent.replace(scriptMatch[0], '');
             }
 
+            // Update textareas
             htmlInput.value = htmlContent.trim();
             cssInput.value = cssContent.trim();
             jsInput.value = jsContent.trim();
+
             updatePreview();
         }
 
         function uploadCode(textareaId, input) {
             const textarea = document.getElementById(textareaId);
-            if (!textarea || !input.files || input.files.length === 0) return;
+            if (!textarea || !input.files || input.files.length === 0) {
+                alert('Error: No file selected or textarea not found.');
+                return;
+            }
             const file = input.files[0];
             const reader = new FileReader();
-            reader.onload = e => {
+            reader.onload = function(e) {
                 textarea.value = e.target.result;
                 updatePreview();
-                input.value = '';
+                input.value = ''; // Reset file input
+            };
+            reader.onerror = function() {
+                alert('Failed to read the file.');
             };
             reader.readAsText(file);
         }
 
-        function fixResponsive() {
-            const htmlInput = document.getElementById('htmlInput');
-            if (!htmlInput) return;
-            let htmlContent = htmlInput.value;
-            if (!/<meta\s+name=["']viewport["']/i.test(htmlContent)) {
-                htmlContent = htmlContent.replace(/<head[^>]*>/i,
-                    match => `${match}\n<meta name="viewport" content="width=device-width, initial-scale=1.0">`);
-            }
-            const responsiveCSS = `
-<style>
-img, iframe, video { max-width: 100%; height: auto; }
-@media (max-width: 768px) { body { font-size: 14px; } }
-@media (max-width: 480px) { body { font-size: 12px; } }
-</style>
-`;
-            if (!/img,\s*iframe,\s*video/.test(htmlContent)) {
-                htmlContent = htmlContent.replace(/<\/head>/i, responsiveCSS + "\n</head>");
-            }
-            htmlInput.value = htmlContent;
-            updatePreview();
-        }
-
-        function mergeCode() {
-            const htmlInput = document.getElementById('htmlInput');
-            const cssInput = document.getElementById('cssInput');
-            const jsInput = document.getElementById('jsInput');
-            if (!htmlInput || !cssInput || !jsInput) return;
-            let htmlContent = htmlInput.value;
-            if (cssInput.value.trim()) {
-                htmlContent = htmlContent.replace(/<\/head>/i,
-                    `<style>\n${cssInput.value}\n</style>\n</head>`);
-            }
-            if (jsInput.value.trim()) {
-                htmlContent = htmlContent.replace(/<\/body>/i,
-                    `<script>\n${jsInput.value}\n</script>\n</body>`);
-            }
-            htmlInput.value = htmlContent;
-            cssInput.value = "";
-            jsInput.value = "";
-            updatePreview();
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
-            ['htmlInput', 'cssInput', 'jsInput'].forEach(id => {
-                const input = document.getElementById(id);
-                if (input) input.addEventListener('input', updatePreview);
-            });
-            updatePreview();
+            const inputs = ['htmlInput', 'cssInput', 'jsInput'].map(id => document.getElementById(id));
+            if (inputs.every(input => input)) {
+                inputs.forEach(input => input.addEventListener('input', updatePreview));
+                updatePreview();
+            } else {
+                console.error('One or more textarea elements not found');
+            }
         });
     </script>
 </body>
