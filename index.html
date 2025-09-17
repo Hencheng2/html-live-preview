@@ -179,9 +179,29 @@
         .editor input[type="file"] {
             display: none;
         }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px;
+            background-color: #16a34a;
+            color: white;
+            border-radius: 5px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 2000;
+        }
+        .notification.show {
+            opacity: 1;
+        }
+        .notification.error {
+            background-color: #dc2626;
+        }
     </style>
 </head>
 <body>
+    <div class="notification" id="notification"></div>
+    
     <div class="preview-controls">
         <button id="phoneBtn" onclick="setPreview('phone')">Phone (360x640)</button>
         <button id="tabletBtn" onclick="setPreview('tablet')">Tablet (768x1024)</button>
@@ -204,8 +224,8 @@
                     <button class="distinguish" onclick="distinguishCode()">Distinguish</button>
                     <button class="fix" onclick="fixCode()">Fix</button>
                     <button class="merge" onclick="mergeCode()">Merge</button>
-                    <label for="htmlUpload" class="upload" style="padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: #ffffff; width: 80px; text-align: center;">Upload</label>
-                    <input type="file" id="htmlUpload" accept=".html,.htm" onchange="uploadCode('htmlInput', this)">
+                    <button class="upload" onclick="document.getElementById('htmlUpload').click()">Upload</button>
+                    <input type="file" id="htmlUpload" accept=".html,.htm,.txt" onchange="uploadCode('htmlInput', this)">
                 </div>
             </div>
             <div class="textarea-container">
@@ -215,6 +235,8 @@
                     <button class="clear" onclick="clearCode('cssInput')">Clear</button>
                     <button class="paste" onclick="pasteCode('cssInput')">Paste</button>
                     <button class="copy" onclick="copyCode('cssInput')">Copy</button>
+                    <button class="upload" onclick="document.getElementById('cssUpload').click()">Upload</button>
+                    <input type="file" id="cssUpload" accept=".css,.txt" onchange="uploadCode('cssInput', this)">
                 </div>
             </div>
             <div class="textarea-container">
@@ -224,27 +246,44 @@
                     <button class="clear" onclick="clearCode('jsInput')">Clear</button>
                     <button class="paste" onclick="pasteCode('jsInput')">Paste</button>
                     <button class="copy" onclick="copyCode('jsInput')">Copy</button>
+                    <button class="upload" onclick="document.getElementById('jsUpload').click()">Upload</button>
+                    <input type="file" id="jsUpload" accept=".js,.txt" onchange="uploadCode('jsInput', this)">
                 </div>
             </div>
         </div>
     </div>
     <script>
+        // Notification system
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = 'notification' + (isError ? ' error' : '') + ' show';
+            
+            setTimeout(() => {
+                notification.className = 'notification' + (isError ? ' error' : '');
+            }, 3000);
+        }
+
         function updatePreview() {
             const htmlInput = document.getElementById('htmlInput');
             const cssInput = document.getElementById('cssInput');
             const jsInput = document.getElementById('jsInput');
             const iframe = document.getElementById('previewFrame');
+            
             if (!htmlInput || !cssInput || !jsInput || !iframe) {
                 console.error('Missing required elements');
                 return;
             }
-            const htmlCode = htmlInput.value || '<html><body></body></html>';
+            
+            const htmlCode = htmlInput.value || '';
             const cssCode = cssInput.value || '';
             const jsCode = jsInput.value || '';
+            
             const fullHtml = `
                 <!DOCTYPE html>
                 <html>
                 <head>
+                    <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <style>${cssCode}</style>
                 </head>
@@ -254,6 +293,7 @@
                 </body>
                 </html>
             `;
+            
             const doc = iframe.contentDocument || iframe.contentWindow.document;
             doc.open();
             doc.write(fullHtml);
@@ -285,37 +325,52 @@
             if (textarea) {
                 textarea.value = '';
                 updatePreview();
+                showNotification('Content cleared');
             } else {
-                alert('Error: Textarea not found.');
+                showNotification('Error: Textarea not found.', true);
             }
         }
 
         async function pasteCode(textareaId) {
             const textarea = document.getElementById(textareaId);
             if (!textarea) {
-                alert('Error: Textarea not found.');
+                showNotification('Error: Textarea not found.', true);
                 return;
             }
+            
             try {
                 const text = await navigator.clipboard.readText();
-                textarea.value = text;
-                updatePreview();
+                if (text) {
+                    textarea.value = text;
+                    updatePreview();
+                    showNotification('Content pasted from clipboard');
+                } else {
+                    showNotification('Clipboard is empty or does not contain text', true);
+                }
             } catch (err) {
-                alert('Failed to paste content. Ensure clipboard access is allowed.');
+                showNotification('Failed to paste content. Ensure clipboard access is allowed.', true);
+                console.error('Paste error:', err);
             }
         }
 
         function copyCode(textareaId) {
             const textarea = document.getElementById(textareaId);
             if (!textarea) {
-                alert('Error: Textarea not found.');
+                showNotification('Error: Textarea not found.', true);
                 return;
             }
+            
             const text = textarea.value;
+            if (!text.trim()) {
+                showNotification('No content to copy', true);
+                return;
+            }
+            
             navigator.clipboard.writeText(text).then(() => {
-                alert('Code copied to clipboard!');
-            }).catch(() => {
-                alert('Failed to copy content.');
+                showNotification('Code copied to clipboard!');
+            }).catch(err => {
+                showNotification('Failed to copy content.', true);
+                console.error('Copy error:', err);
             });
         }
 
@@ -325,13 +380,13 @@
             const jsInput = document.getElementById('jsInput');
             
             if (!htmlInput || !cssInput || !jsInput) {
-                alert('Error: Textarea not found.');
+                showNotification('Error: Textarea not found.', true);
                 return;
             }
 
             let htmlContent = htmlInput.value;
-            let cssContent = '';
-            let jsContent = '';
+            let cssContent = cssInput.value;
+            let jsContent = jsInput.value;
 
             // Extract CSS from <style> tags
             const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
@@ -355,6 +410,7 @@
             jsInput.value = jsContent.trim();
 
             updatePreview();
+            showNotification('Code separated into HTML, CSS, and JavaScript');
         }
         
         function fixCode() {
@@ -363,7 +419,7 @@
             const previewWindow = document.getElementById('previewWindow');
             
             if (!htmlInput || !cssInput || !previewWindow) {
-                alert('Error: Required elements not found.');
+                showNotification('Error: Required elements not found.', true);
                 return;
             }
             
@@ -372,10 +428,19 @@
             
             // Check if we need to add viewport meta tag
             if (!/<meta[^>]+viewport[^>]+>/i.test(htmlContent)) {
-                htmlContent = htmlContent.replace(
-                    /<head[^>]*>/i, 
-                    match => match + '\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">'
-                );
+                if (/<head[^>]*>/i.test(htmlContent)) {
+                    htmlContent = htmlContent.replace(
+                        /<head[^>]*>/i, 
+                        '$&\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">'
+                    );
+                } else if (/<html[^>]*>/i.test(htmlContent)) {
+                    htmlContent = htmlContent.replace(
+                        /<html[^>]*>/i, 
+                        '$&\n<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n</head>'
+                    );
+                } else {
+                    htmlContent = '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n</head>\n' + htmlContent;
+                }
             }
             
             // Check device type and add responsive CSS if needed
@@ -384,18 +449,21 @@
             
             // Add responsive CSS if not already present
             const responsiveCss = `
-                /* Responsive adjustments for ${deviceClass} */
-                @media (max-width: ${deviceClass === 'phone' ? '767px' : deviceClass === 'tablet' ? '1023px' : '1366px'}) {
-                    /* Add your responsive styles here */
-                    .container {
-                        width: 100%;
-                        padding: 10px;
-                    }
-                    img {
-                        max-width: 100%;
-                        height: auto;
-                    }
-                }
+/* Responsive adjustments for ${deviceClass} */
+@media (max-width: ${deviceClass === 'phone' ? '767px' : deviceClass === 'tablet' ? '1023px' : '1366px'}) {
+    .container {
+        width: 100% !important;
+        padding: 10px !important;
+    }
+    img, video {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+    table {
+        width: 100% !important;
+    }
+    /* Add more responsive rules as needed */
+}
             `;
             
             if (!cssContent.includes('@media') && !cssContent.includes('responsive')) {
@@ -415,7 +483,7 @@
             
             htmlInput.value = htmlContent;
             updatePreview();
-            alert(`HTML code has been adjusted for ${deviceClass} view. Check CSS for responsive media queries.`);
+            showNotification(`HTML code has been adjusted for ${deviceClass} view. Check CSS for responsive media queries.`);
         }
         
         function mergeCode() {
@@ -424,7 +492,7 @@
             const jsInput = document.getElementById('jsInput');
             
             if (!htmlInput || !cssInput || !jsInput) {
-                alert('Error: Textarea not found.');
+                showNotification('Error: Textarea not found.', true);
                 return;
             }
             
@@ -434,34 +502,36 @@
             
             // Add CSS to head if it exists
             if (cssContent.trim()) {
-                if (!/<style[^>]*>[\s\S]*<\/style>/i.test(htmlContent) && 
-                    !/<link[^>]+rel=["']stylesheet["'][^>]*>/i.test(htmlContent)) {
-                    // Find head tag or create one if it doesn't exist
-                    if (/<head[^>]*>/i.test(htmlContent)) {
-                        htmlContent = htmlContent.replace(
-                            /<head[^>]*>/i, 
-                            match => match + `\n<style>\n${cssContent}\n</style>`
-                        );
-                    } else {
-                        htmlContent = htmlContent.replace(
-                            /<html[^>]*>/i, 
-                            match => match + `\n<head>\n<style>\n${cssContent}\n</style>\n</head>`
-                        );
-                    }
+                // Find head tag or create one if it doesn't exist
+                if (/<head[^>]*>/i.test(htmlContent)) {
+                    htmlContent = htmlContent.replace(
+                        /<head[^>]*>/i, 
+                        '$&<style>\n' + cssContent + '\n</style>'
+                    );
+                } else if (/<html[^>]*>/i.test(htmlContent)) {
+                    htmlContent = htmlContent.replace(
+                        /<html[^>]*>/i, 
+                        '$&<head><style>\n' + cssContent + '\n</style></head>'
+                    );
+                } else {
+                    htmlContent = '<head><style>\n' + cssContent + '\n</style></head>' + htmlContent;
                 }
             }
             
             // Add JS before closing body tag if it exists
             if (jsContent.trim()) {
-                if (!/<script[^>]*>[\s\S]*<\/script>/i.test(htmlContent)) {
-                    if (/<\/body>/i.test(htmlContent)) {
-                        htmlContent = htmlContent.replace(
-                            /<\/body>/i, 
-                            `<script>\n${jsContent}\n</script>\n</body>`
-                        );
-                    } else {
-                        htmlContent += `\n<script>\n${jsContent}\n</script>`;
-                    }
+                if (/<\/body>/i.test(htmlContent)) {
+                    htmlContent = htmlContent.replace(
+                        /<\/body>/i, 
+                        '<script>\n' + jsContent + '\n</script></body>'
+                    );
+                } else if (/<\/html>/i.test(htmlContent)) {
+                    htmlContent = htmlContent.replace(
+                        /<\/html>/i, 
+                        '<script>\n' + jsContent + '\n</script></html>'
+                    );
+                } else {
+                    htmlContent += '<script>\n' + jsContent + '\n</script>';
                 }
             }
             
@@ -469,25 +539,30 @@
             cssInput.value = '';
             jsInput.value = '';
             updatePreview();
-            alert('CSS and JavaScript have been merged into the HTML!');
+            showNotification('CSS and JavaScript have been merged into the HTML!');
         }
 
         function uploadCode(textareaId, input) {
             const textarea = document.getElementById(textareaId);
             if (!textarea || !input.files || input.files.length === 0) {
-                alert('Error: No file selected or textarea not found.');
+                showNotification('Error: No file selected or textarea not found.', true);
                 return;
             }
+            
             const file = input.files[0];
             const reader = new FileReader();
+            
             reader.onload = function(e) {
                 textarea.value = e.target.result;
                 updatePreview();
                 input.value = ''; // Reset file input
+                showNotification(`File "${file.name}" uploaded successfully`);
             };
+            
             reader.onerror = function() {
-                alert('Failed to read the file.');
+                showNotification('Failed to read the file.', true);
             };
+            
             reader.readAsText(file);
         }
 
