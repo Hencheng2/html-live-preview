@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Preview Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .preview-controls {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: #2d2d2d;
+            padding: 10px;
+            text-align: center;
+            z-index: 1000;
+        }
+        .preview-controls button {
+            padding: 8px 16px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            background-color: #3b82f6;
+            color: #ffffff;
+            border-radius: 5px;
+        }
+        .preview-controls button:hover {
+            background-color: #2563eb;
+        }
+        .preview-controls button.active {
+            background-color: #16a34a;
+        }
+        .preview {
+            position: fixed;
+            top: 60px;
+            bottom: 160px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: visible;
+        }
+        .preview-window {
+            border: 2px solid #3f3f3f;
+            background-color: #252525;
+            transition: width 0.3s ease, height 0.3s ease;
+            max-width: 100%;
+            max-height: 100%;
+            overflow: auto;
+        }
+        .preview-window.phone {
+            width: 360px;
+            height: 640px;
+        }
+        .preview-window.tablet {
+            width: 768px;
+            height: 1024px;
+        }
+        .preview-window.laptop {
+            width: 1366px;
+            height: 768px;
+        }
+        .preview-window iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: #ffffff;
+        }
+        .editor {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            background-color: #2d2d2d;
+            border-top: 2px solid #3f3f3f;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .editor .textarea-group {
+            display: flex;
+            gap: 10px;
+        }
+        .editor .textarea-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .editor h3 {
+            margin: 0;
+            font-size: 12px;
+            text-align: center;
+            color: #e0e0e0;
+        }
+        .editor textarea {
+            width: 100%;
+            height: 60px;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 8px;
+            border: 1px solid #3f3f3f;
+            border-radius: 5px;
+            resize: none;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+        .editor textarea::placeholder {
+            color: #6b7280;
+        }
+        .editor .button-group {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+        .editor button {
+            padding: 6px 12px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            color: #ffffff;
+            width: 80px;
+        }
+        .editor button.clear {
+            background-color: #dc2626;
+        }
+        .editor button.clear:hover {
+            background-color: #b91c1c;
+        }
+        .editor button.paste {
+            background-color: #16a34a;
+        }
+        .editor button.paste:hover {
+            background-color: #15803d;
+        }
+        .editor button.copy {
+            background-color: #f59e0b;
+        }
+        .editor button.copy:hover {
+            background-color: #d97706;
+        }
+        .editor button.distinguish {
+            background-color: #8b5cf6;
+        }
+        .editor button.distinguish:hover {
+            background-color: #7c3aed;
+        }
+        .editor button.upload {
+            background-color: #d97706;
+        }
+        .editor button.upload:hover {
+            background-color: #b91c1c;
+        }
+        .editor input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-controls">
+        <button id="phoneBtn" onclick="setPreview('phone')">Phone (360x640)</button>
+        <button id="tabletBtn" onclick="setPreview('tablet')">Tablet (768x1024)</button>
+        <button id="laptopBtn" class="active" onclick="setPreview('laptop')">Laptop (1366x768)</button>
+    </div>
+    <div class="preview">
+        <div class="preview-window laptop" id="previewWindow">
+            <iframe id="previewFrame"></iframe>
+        </div>
+    </div>
+    <div class="editor">
+        <div class="textarea-group">
+            <div class="textarea-container">
+                <h3>HTML</h3>
+                <textarea id="htmlInput" placeholder="Enter your HTML code here..."></textarea>
+                <div class="button-group">
+                    <button class="clear" onclick="clearCode('htmlInput')">Clear</button>
+                    <button class="paste" onclick="pasteCode('htmlInput')">Paste</button>
+                    <button class="copy" onclick="copyCode('htmlInput')">Copy</button>
+                    <button class="distinguish" onclick="distinguishCode()">Distinguish</button>
+                    <label for="htmlUpload" class="upload" style="padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: #ffffff; width: 80px; text-align: center;">Upload</label>
+                    <input type="file" id="htmlUpload" accept=".html,.htm" onchange="uploadCode('htmlInput', this)">
+                </div>
+            </div>
+            <div class="textarea-container">
+                <h3>CSS</h3>
+                <textarea id="cssInput" placeholder="Enter your CSS code here..."></textarea>
+                <div class="button-group">
+                    <button class="clear" onclick="clearCode('cssInput')">Clear</button>
+                    <button class="paste" onclick="pasteCode('cssInput')">Paste</button>
+                    <button class="copy" onclick="copyCode('cssInput')">Copy</button>
+                </div>
+            </div>
+            <div class="textarea-container">
+                <h3>JavaScript</h3>
+                <textarea id="jsInput" placeholder="Enter your JavaScript code here..."></textarea>
+                <div class="button-group">
+                    <button class="clear" onclick="clearCode('jsInput')">Clear</button>
+                    <button class="paste" onclick="pasteCode('jsInput')">Paste</button>
+                    <button class="copy" onclick="copyCode('jsInput')">Copy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function updatePreview() {
+            const htmlInput = document.getElementById('htmlInput');
+            const cssInput = document.getElementById('cssInput');
+            const jsInput = document.getElementById('jsInput');
+            const iframe = document.getElementById('previewFrame');
+            if (!htmlInput || !cssInput || !jsInput || !iframe) {
+                console.error('Missing required elements');
+                return;
+            }
+            const htmlCode = htmlInput.value || '<html><body></body></html>';
+            const cssCode = cssInput.value || '';
+            const jsCode = jsInput.value || '';
+            const fullHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>${cssCode}</style>
+                </head>
+                <body>
+                    ${htmlCode}
+                    <script>${jsCode}<\/script>
+                </body>
+                </html>
+            `;
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            doc.open();
+            doc.write(fullHtml);
+            doc.close();
+        }
+
+        function setPreview(device) {
+            const previewWindow = document.getElementById('previewWindow');
+            const buttons = {
+                'phone': document.getElementById('phoneBtn'),
+                'tablet': document.getElementById('tabletBtn'),
+                'laptop': document.getElementById('laptopBtn')
+            };
+            
+            if (previewWindow) {
+                previewWindow.classList.remove('phone', 'tablet', 'laptop');
+                previewWindow.classList.add(device);
+                
+                // Update button states
+                Object.values(buttons).forEach(btn => btn.classList.remove('active'));
+                buttons[device].classList.add('active');
+                
+                updatePreview(); // Refresh preview after size change
+            }
+        }
+
+        function clearCode(textareaId) {
+            const textarea = document.getElementById(textareaId);
+            if (textarea) {
+                textarea.value = '';
+                updatePreview();
+            } else {
+                alert('Error: Textarea not found.');
+            }
+        }
+
+        async function pasteCode(textareaId) {
+            const textarea = document.getElementById(textareaId);
+            if (!textarea) {
+                alert('Error: Textarea not found.');
+                return;
+            }
+            try {
+                const text = await navigator.clipboard.readText();
+                textarea.value = text;
+                updatePreview();
+            } catch (err) {
+                alert('Failed to paste content. Ensure clipboard access is allowed.');
+            }
+        }
+
+        function copyCode(textareaId) {
+            const textarea = document.getElementById(textareaId);
+            if (!textarea) {
+                alert('Error: Textarea not found.');
+                return;
+            }
+            const text = textarea.value;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Code copied to clipboard!');
+            }).catch(() => {
+                alert('Failed to copy content.');
+            });
+        }
+
+        function distinguishCode() {
+            const htmlInput = document.getElementById('htmlInput');
+            const cssInput = document.getElementById('cssInput');
+            const jsInput = document.getElementById('jsInput');
+            
+            if (!htmlInput || !cssInput || !jsInput) {
+                alert('Error: Textarea not found.');
+                return;
+            }
+
+            let htmlContent = htmlInput.value;
+            let cssContent = '';
+            let jsContent = '';
+
+            // Extract CSS from <style> tags
+            const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+            let styleMatch;
+            while ((styleMatch = styleRegex.exec(htmlContent)) !== null) {
+                cssContent += styleMatch[1].trim() + '\n';
+                htmlContent = htmlContent.replace(styleMatch[0], '');
+            }
+
+            // Extract JavaScript from <script> tags
+            const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
+            let scriptMatch;
+            while ((scriptMatch = scriptRegex.exec(htmlContent)) !== null) {
+                jsContent += scriptMatch[1].trim() + '\n';
+                htmlContent = htmlContent.replace(scriptMatch[0], '');
+            }
+
+            // Update textareas
+            htmlInput.value = htmlContent.trim();
+            cssInput.value = cssContent.trim();
+            jsInput.value = jsContent.trim();
+
+            updatePreview();
+        }
+
+        function uploadCode(textareaId, input) {
+            const textarea = document.getElementById(textareaId);
+            if (!textarea || !input.files || input.files.length === 0) {
+                alert('Error: No file selected or textarea not found.');
+                return;
+            }
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                textarea.value = e.target.result;
+                updatePreview();
+                input.value = ''; // Reset file input
+            };
+            reader.onerror = function() {
+                alert('Failed to read the file.');
+            };
+            reader.readAsText(file);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputs = ['htmlInput', 'cssInput', 'jsInput'].map(id => document.getElementById(id));
+            if (inputs.every(input => input)) {
+                inputs.forEach(input => input.addEventListener('input', updatePreview));
+                updatePreview();
+            } else {
+                console.error('One or more textarea elements not found');
+            }
+        });
+    </script>
+</body>
+</html>
