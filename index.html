@@ -124,6 +124,7 @@
             display: flex;
             gap: 5px;
             justify-content: center;
+            flex-wrap: wrap;
         }
         .editor button {
             padding: 6px 12px;
@@ -157,6 +158,18 @@
         .editor button.distinguish:hover {
             background-color: #7c3aed;
         }
+        .editor button.fix {
+            background-color: #0891b2;
+        }
+        .editor button.fix:hover {
+            background-color: #0e7490;
+        }
+        .editor button.merge {
+            background-color: #db2777;
+        }
+        .editor button.merge:hover {
+            background-color: #be185d;
+        }
         .editor button.upload {
             background-color: #d97706;
         }
@@ -189,6 +202,8 @@
                     <button class="paste" onclick="pasteCode('htmlInput')">Paste</button>
                     <button class="copy" onclick="copyCode('htmlInput')">Copy</button>
                     <button class="distinguish" onclick="distinguishCode()">Distinguish</button>
+                    <button class="fix" onclick="fixCode()">Fix</button>
+                    <button class="merge" onclick="mergeCode()">Merge</button>
                     <label for="htmlUpload" class="upload" style="padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: #ffffff; width: 80px; text-align: center;">Upload</label>
                     <input type="file" id="htmlUpload" accept=".html,.htm" onchange="uploadCode('htmlInput', this)">
                 </div>
@@ -230,6 +245,7 @@
                 <!DOCTYPE html>
                 <html>
                 <head>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <style>${cssCode}</style>
                 </head>
                 <body>
@@ -339,6 +355,121 @@
             jsInput.value = jsContent.trim();
 
             updatePreview();
+        }
+        
+        function fixCode() {
+            const htmlInput = document.getElementById('htmlInput');
+            const cssInput = document.getElementById('cssInput');
+            const previewWindow = document.getElementById('previewWindow');
+            
+            if (!htmlInput || !cssInput || !previewWindow) {
+                alert('Error: Required elements not found.');
+                return;
+            }
+            
+            let htmlContent = htmlInput.value;
+            let cssContent = cssInput.value;
+            
+            // Check if we need to add viewport meta tag
+            if (!/<meta[^>]+viewport[^>]+>/i.test(htmlContent)) {
+                htmlContent = htmlContent.replace(
+                    /<head[^>]*>/i, 
+                    match => match + '\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">'
+                );
+            }
+            
+            // Check device type and add responsive CSS if needed
+            const deviceClass = previewWindow.classList.contains('phone') ? 'phone' : 
+                               previewWindow.classList.contains('tablet') ? 'tablet' : 'laptop';
+            
+            // Add responsive CSS if not already present
+            const responsiveCss = `
+                /* Responsive adjustments for ${deviceClass} */
+                @media (max-width: ${deviceClass === 'phone' ? '767px' : deviceClass === 'tablet' ? '1023px' : '1366px'}) {
+                    /* Add your responsive styles here */
+                    .container {
+                        width: 100%;
+                        padding: 10px;
+                    }
+                    img {
+                        max-width: 100%;
+                        height: auto;
+                    }
+                }
+            `;
+            
+            if (!cssContent.includes('@media') && !cssContent.includes('responsive')) {
+                cssInput.value = cssContent + responsiveCss;
+            }
+            
+            // Update HTML if it contains fixed pixel sizes that should be relative
+            htmlContent = htmlContent.replace(
+                /width=["'](\d+)px["']/gi, 
+                'width="$1px" /* Consider using % or vw for responsiveness */'
+            );
+            
+            htmlContent = htmlContent.replace(
+                /height=["'](\d+)px["']/gi, 
+                'height="$1px" /* Consider using % or vh for responsiveness */'
+            );
+            
+            htmlInput.value = htmlContent;
+            updatePreview();
+            alert(`HTML code has been adjusted for ${deviceClass} view. Check CSS for responsive media queries.`);
+        }
+        
+        function mergeCode() {
+            const htmlInput = document.getElementById('htmlInput');
+            const cssInput = document.getElementById('cssInput');
+            const jsInput = document.getElementById('jsInput');
+            
+            if (!htmlInput || !cssInput || !jsInput) {
+                alert('Error: Textarea not found.');
+                return;
+            }
+            
+            let htmlContent = htmlInput.value;
+            const cssContent = cssInput.value;
+            const jsContent = jsInput.value;
+            
+            // Add CSS to head if it exists
+            if (cssContent.trim()) {
+                if (!/<style[^>]*>[\s\S]*<\/style>/i.test(htmlContent) && 
+                    !/<link[^>]+rel=["']stylesheet["'][^>]*>/i.test(htmlContent)) {
+                    // Find head tag or create one if it doesn't exist
+                    if (/<head[^>]*>/i.test(htmlContent)) {
+                        htmlContent = htmlContent.replace(
+                            /<head[^>]*>/i, 
+                            match => match + `\n<style>\n${cssContent}\n</style>`
+                        );
+                    } else {
+                        htmlContent = htmlContent.replace(
+                            /<html[^>]*>/i, 
+                            match => match + `\n<head>\n<style>\n${cssContent}\n</style>\n</head>`
+                        );
+                    }
+                }
+            }
+            
+            // Add JS before closing body tag if it exists
+            if (jsContent.trim()) {
+                if (!/<script[^>]*>[\s\S]*<\/script>/i.test(htmlContent)) {
+                    if (/<\/body>/i.test(htmlContent)) {
+                        htmlContent = htmlContent.replace(
+                            /<\/body>/i, 
+                            `<script>\n${jsContent}\n</script>\n</body>`
+                        );
+                    } else {
+                        htmlContent += `\n<script>\n${jsContent}\n</script>`;
+                    }
+                }
+            }
+            
+            htmlInput.value = htmlContent;
+            cssInput.value = '';
+            jsInput.value = '';
+            updatePreview();
+            alert('CSS and JavaScript have been merged into the HTML!');
         }
 
         function uploadCode(textareaId, input) {
