@@ -179,6 +179,12 @@
         .editor button.distinguish:hover {
             background-color: #7c3aed;
         }
+        .editor button.merge {
+            background-color: #3b82f6;
+        }
+        .editor button.merge:hover {
+            background-color: #2563eb;
+        }
         .editor button.upload {
             background-color: #d97706;
         }
@@ -247,6 +253,7 @@
                     <button class="paste" onclick="pasteCode('htmlInput')">Paste</button>
                     <button class="copy" onclick="copyCode('htmlInput')">Copy</button>
                     <button class="distinguish" onclick="distinguishCode()">Distinguish</button>
+                    <button class="merge" onclick="mergeCode()">Merge</button>
                     <label for="htmlUpload" class="upload" style="padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: #ffffff; width: 80px; text-align: center;">Upload</label>
                     <input type="file" id="htmlUpload" accept=".html,.htm" onchange="uploadCode('htmlInput', this)">
                 </div>
@@ -395,6 +402,49 @@
             htmlInput.value = htmlContent.trim();
             cssInput.value = cssContent.trim();
             jsInput.value = jsContent.trim();
+
+            updatePreview();
+        }
+
+        function mergeCode() {
+            const htmlInput = document.getElementById('htmlInput');
+            const cssInput = document.getElementById('cssInput');
+            const jsInput = document.getElementById('jsInput');
+            
+            if (!htmlInput || !cssInput || !jsInput) {
+                alert('Error: Textarea not found.');
+                return;
+            }
+
+            let htmlContent = htmlInput.value;
+            const cssContent = cssInput.value.trim();
+            const jsContent = jsInput.value.trim();
+
+            // Create a complete HTML document structure
+            let mergedHTML = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merged Document</title>
+    <style>
+${cssContent}
+    </style>
+</head>
+<body>
+    ${htmlContent}
+    <script>
+${jsContent}
+    <\/script>
+</body>
+</html>`;
+
+            // Update HTML textarea
+            htmlInput.value = mergedHTML;
+            
+            // Clear CSS and JS textareas
+            cssInput.value = '';
+            jsInput.value = '';
 
             updatePreview();
         }
