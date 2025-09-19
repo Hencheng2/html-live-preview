@@ -179,6 +179,12 @@
         .editor button.distinguish:hover {
             background-color: #7c3aed;
         }
+        .editor button.merge {
+            background-color: #3b82f6;
+        }
+        .editor button.merge:hover {
+            background-color: #2563eb;
+        }
         .editor button.upload {
             background-color: #d97706;
         }
@@ -247,6 +253,7 @@
                     <button class="paste" onclick="pasteCode('htmlInput')">Paste</button>
                     <button class="copy" onclick="copyCode('htmlInput')">Copy</button>
                     <button class="distinguish" onclick="distinguishCode()">Distinguish</button>
+                    <button class="merge" onclick="mergeCode()">Merge</button>
                     <label for="htmlUpload" class="upload" style="padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: #ffffff; width: 80px; text-align: center;">Upload</label>
                     <input type="file" id="htmlUpload" accept=".html,.htm" onchange="uploadCode('htmlInput', this)">
                 </div>
@@ -395,6 +402,50 @@
             htmlInput.value = htmlContent.trim();
             cssInput.value = cssContent.trim();
             jsInput.value = jsContent.trim();
+
+            updatePreview();
+        }
+
+        function mergeCode() {
+            const htmlInput = document.getElementById('htmlInput');
+            const cssInput = document.getElementById('cssInput');
+            const jsInput = document.getElementById('jsInput');
+            
+            if (!htmlInput || !cssInput || !jsInput) {
+                alert('Error: Textarea not found.');
+                return;
+            }
+
+            let htmlContent = htmlInput.value;
+            const cssContent = cssInput.value.trim();
+            const jsContent = jsInput.value.trim();
+
+            // Add CSS to the head section if it exists
+            if (cssContent) {
+                if (htmlContent.includes('</head>')) {
+                    htmlContent = htmlContent.replace('</head>', `<style>${cssContent}</style></head>`);
+                } else if (htmlContent.includes('<head>')) {
+                    htmlContent = htmlContent.replace('<head>', `<head><style>${cssContent}</style>`);
+                } else {
+                    // If no head tag, add one with the CSS
+                    htmlContent = `<head><style>${cssContent}</style></head>${htmlContent}`;
+                }
+            }
+
+            // Add JavaScript before the closing body tag if it exists
+            if (jsContent) {
+                if (htmlContent.includes('</body>')) {
+                    htmlContent = htmlContent.replace('</body>', `<script>${jsContent}</script></body>`);
+                } else if (htmlContent.includes('<body>')) {
+                    htmlContent = htmlContent.replace('<body>', `<body><script>${jsContent}</script>`);
+                } else {
+                    // If no body tag, add the script at the end
+                    htmlContent += `<script>${jsContent}</script>`;
+                }
+            }
+
+            // Update HTML textarea
+            htmlInput.value = htmlContent;
 
             updatePreview();
         }
