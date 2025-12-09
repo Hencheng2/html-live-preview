@@ -246,6 +246,17 @@
     <div class="editor">
         <div class="textarea-group">
             <div class="textarea-container">
+                <h3>Base HTML</h3>
+                <textarea id="baseHtmlInput" placeholder="Enter your base HTML template here..."></textarea>
+                <div class="button-group">
+                    <button class="clear" onclick="clearCode('baseHtmlInput')">Clear</button>
+                    <button class="paste" onclick="pasteCode('baseHtmlInput')">Paste</button>
+                    <button class="copy" onclick="copyCode('baseHtmlInput')">Copy</button>
+                    <label for="baseHtmlUpload" class="upload" style="padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: #ffffff; width: 80px; text-align: center;">Upload</label>
+                    <input type="file" id="baseHtmlUpload" accept=".html,.htm" onchange="uploadCode('baseHtmlInput', this)">
+                </div>
+            </div>
+            <div class="textarea-container">
                 <h3>HTML</h3>
                 <textarea id="htmlInput" placeholder="Enter your HTML code here..."></textarea>
                 <div class="button-group">
@@ -276,18 +287,6 @@
                     <button class="copy" onclick="copyCode('jsInput')">Copy</button>
                 </div>
             </div>
-            <!-- Base HTML Section -->
-            <div class="textarea-container">
-                <h3>Base HTML</h3>
-                <textarea id="baseInput" placeholder="Enter base HTML with {{content}} placeholder..."></textarea>
-                <div class="button-group">
-                    <button class="clear" onclick="clearCode('baseInput')">Clear</button>
-                    <button class="paste" onclick="pasteCode('baseInput')">Paste</button>
-                    <button class="copy" onclick="copyCode('baseInput')">Copy</button>
-                    <label for="baseUpload" class="upload" style="padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: #ffffff; width: 80px; text-align: center;">Upload</label>
-                    <input type="file" id="baseUpload" accept=".html,.htm" onchange="uploadCode('baseInput', this)">
-                </div>
-            </div>
         </div>
     </div>
     <script>
@@ -295,9 +294,10 @@
             const htmlInput = document.getElementById('htmlInput');
             const cssInput = document.getElementById('cssInput');
             const jsInput = document.getElementById('jsInput');
-            const baseInput = document.getElementById('baseInput');
+            const baseHtmlInput = document.getElementById('baseHtmlInput');
             const iframe = document.getElementById('previewFrame');
-            if (!htmlInput || !cssInput || !jsInput || !iframe) {
+            
+            if (!htmlInput || !cssInput || !jsInput || !baseHtmlInput || !iframe) {
                 console.error('Missing required elements');
                 return;
             }
@@ -305,58 +305,49 @@
             const htmlCode = htmlInput.value || '';
             const cssCode = cssInput.value || '';
             const jsCode = jsInput.value || '';
-            const baseCode = baseInput ? baseInput.value || '' : '';
+            const baseHtmlCode = baseHtmlInput.value || '<html><body></body></html>';
             
-            let fullHtml = '';
+            // Insert the HTML content into the base HTML template
+            let fullHtml = baseHtmlCode;
             
-            // If base HTML contains {{content}} placeholder
-            if (baseCode && baseCode.includes('{{content}}')) {
-                // Replace {{content}} with the user's HTML
-                let processedBase = baseCode.replace('{{content}}', htmlCode);
-                
-                // Check if base already has style/script tags
-                const hasStyleInHead = /<style[^>]*>[\s\S]*?<\/style>/i.test(processedBase);
-                const hasScriptInBody = /<script[^>]*>[\s\S]*?<\/script>/i.test(processedBase);
-                
-                // Add CSS if not already in base
-                if (cssCode && !hasStyleInHead) {
-                    // Try to insert before closing </head>
-                    if (processedBase.includes('</head>')) {
-                        processedBase = processedBase.replace('</head>', `<style>${cssCode}</style></head>`);
-                    } else if (processedBase.includes('<head>')) {
-                        processedBase = processedBase.replace('<head>', `<head><style>${cssCode}</style>`);
+            // Insert CSS into <head> if not already present
+            if (cssCode) {
+                if (fullHtml.includes('</head>')) {
+                    fullHtml = fullHtml.replace('</head>', `<style>${cssCode}</style></head>`);
+                } else if (fullHtml.includes('<head>')) {
+                    fullHtml = fullHtml.replace('<head>', `<head><style>${cssCode}</style>`);
+                } else {
+                    // If no head tag, insert style in the body
+                    if (fullHtml.includes('</body>')) {
+                        fullHtml = fullHtml.replace('</body>', `<style>${cssCode}</style></body>`);
                     } else {
-                        processedBase = `<style>${cssCode}</style>${processedBase}`;
+                        fullHtml += `<style>${cssCode}</style>`;
                     }
                 }
-                
-                // Add JS if not already in base
-                if (jsCode && !hasScriptInBody) {
-                    // Try to insert before closing </body>
-                    if (processedBase.includes('</body>')) {
-                        processedBase = processedBase.replace('</body>', `<script>${jsCode}</script></body>`);
-                    } else if (processedBase.includes('</html>')) {
-                        processedBase = processedBase.replace('</html>', `<script>${jsCode}</script></html>`);
-                    } else {
-                        processedBase += `<script>${jsCode}</script>`;
-                    }
+            }
+            
+            // Insert HTML content into the body
+            if (htmlCode) {
+                if (fullHtml.includes('</body>')) {
+                    fullHtml = fullHtml.replace('</body>', `${htmlCode}</body>`);
+                } else if (fullHtml.includes('<body>')) {
+                    fullHtml = fullHtml.replace('<body>', `<body>${htmlCode}`);
+                } else {
+                    // If no body tag, append to the end
+                    fullHtml += htmlCode;
                 }
-                
-                fullHtml = processedBase;
-            } else {
-                // Original behavior - combine HTML, CSS, JS
-                fullHtml = `
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <style>${cssCode}</style>
-                    </head>
-                    <body>
-                        ${htmlCode}
-                        <script>${jsCode}<\/script>
-                    </body>
-                    </html>
-                `;
+            }
+            
+            // Insert JavaScript before closing body tag
+            if (jsCode) {
+                if (fullHtml.includes('</body>')) {
+                    fullHtml = fullHtml.replace('</body>', `<script>${jsCode}<\/script></body>`);
+                } else if (fullHtml.includes('<body>')) {
+                    fullHtml = fullHtml.replace('<body>', `<body><script>${jsCode}<\/script>`);
+                } else {
+                    // If no body tag, append to the end
+                    fullHtml += `<script>${jsCode}<\/script>`;
+                }
             }
             
             const doc = iframe.contentDocument || iframe.contentWindow.document;
@@ -428,13 +419,15 @@
             const htmlInput = document.getElementById('htmlInput');
             const cssInput = document.getElementById('cssInput');
             const jsInput = document.getElementById('jsInput');
+            const baseHtmlInput = document.getElementById('baseHtmlInput');
             
-            if (!htmlInput || !cssInput || !jsInput) {
+            if (!htmlInput || !cssInput || !jsInput || !baseHtmlInput) {
                 alert('Error: Textarea not found.');
                 return;
             }
 
             let htmlContent = htmlInput.value;
+            let baseHtmlContent = baseHtmlInput.value;
             let cssContent = '';
             let jsContent = '';
 
@@ -445,6 +438,12 @@
                 cssContent += styleMatch[1].trim() + '\n';
                 htmlContent = htmlContent.replace(styleMatch[0], '');
             }
+            
+            // Also extract CSS from base HTML
+            while ((styleMatch = styleRegex.exec(baseHtmlContent)) !== null) {
+                cssContent += styleMatch[1].trim() + '\n';
+                baseHtmlContent = baseHtmlContent.replace(styleMatch[0], '');
+            }
 
             // Extract JavaScript from <script> tags
             const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
@@ -453,9 +452,16 @@
                 jsContent += scriptMatch[1].trim() + '\n';
                 htmlContent = htmlContent.replace(scriptMatch[0], '');
             }
+            
+            // Also extract JavaScript from base HTML
+            while ((scriptMatch = scriptRegex.exec(baseHtmlContent)) !== null) {
+                jsContent += scriptMatch[1].trim() + '\n';
+                baseHtmlContent = baseHtmlContent.replace(scriptMatch[0], '');
+            }
 
             // Update textareas
             htmlInput.value = htmlContent.trim();
+            baseHtmlInput.value = baseHtmlContent.trim();
             cssInput.value = cssContent.trim();
             jsInput.value = jsContent.trim();
 
@@ -466,39 +472,66 @@
             const htmlInput = document.getElementById('htmlInput');
             const cssInput = document.getElementById('cssInput');
             const jsInput = document.getElementById('jsInput');
+            const baseHtmlInput = document.getElementById('baseHtmlInput');
             
-            if (!htmlInput || !cssInput || !jsInput) {
+            if (!htmlInput || !cssInput || !jsInput || !baseHtmlInput) {
                 alert('Error: Textarea not found.');
                 return;
             }
 
             let htmlContent = htmlInput.value;
+            const baseHtmlContent = baseHtmlInput.value.trim();
             const cssContent = cssInput.value.trim();
             const jsContent = jsInput.value.trim();
 
-            // Create a complete HTML document structure
-            let mergedHTML = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Merged Document</title>
-    <style>
-${cssContent}
-    </style>
-</head>
-<body>
-    ${htmlContent}
-    <script>
-${jsContent}
-    <\/script>
-</body>
-</html>`;
+            // Start with the base HTML template
+            let mergedHTML = baseHtmlContent;
+            
+            // Insert CSS into <head> if not already present
+            if (cssContent) {
+                if (mergedHTML.includes('</head>')) {
+                    mergedHTML = mergedHTML.replace('</head>', `<style>${cssContent}</style></head>`);
+                } else if (mergedHTML.includes('<head>')) {
+                    mergedHTML = mergedHTML.replace('<head>', `<head><style>${cssContent}</style>`);
+                } else {
+                    // If no head tag, insert style in the body
+                    if (mergedHTML.includes('</body>')) {
+                        mergedHTML = mergedHTML.replace('</body>', `<style>${cssContent}</style></body>`);
+                    } else {
+                        mergedHTML += `<style>${cssContent}</style>`;
+                    }
+                }
+            }
+            
+            // Insert HTML content into the body
+            if (htmlContent) {
+                if (mergedHTML.includes('</body>')) {
+                    mergedHTML = mergedHTML.replace('</body>', `${htmlContent}</body>`);
+                } else if (mergedHTML.includes('<body>')) {
+                    mergedHTML = mergedHTML.replace('<body>', `<body>${htmlContent}`);
+                } else {
+                    // If no body tag, append to the end
+                    mergedHTML += htmlContent;
+                }
+            }
+            
+            // Insert JavaScript before closing body tag
+            if (jsContent) {
+                if (mergedHTML.includes('</body>')) {
+                    mergedHTML = mergedHTML.replace('</body>', `<script>${jsContent}<\/script></body>`);
+                } else if (mergedHTML.includes('<body>')) {
+                    mergedHTML = mergedHTML.replace('<body>', `<body><script>${jsContent}<\/script>`);
+                } else {
+                    // If no body tag, append to the end
+                    mergedHTML += `<script>${jsContent}<\/script>`;
+                }
+            }
 
             // Update HTML textarea
             htmlInput.value = mergedHTML;
             
-            // Clear CSS and JS textareas
+            // Clear other textareas
+            baseHtmlInput.value = '';
             cssInput.value = '';
             jsInput.value = '';
 
@@ -525,7 +558,7 @@ ${jsContent}
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            const inputs = ['htmlInput', 'cssInput', 'jsInput', 'baseInput'].map(id => document.getElementById(id));
+            const inputs = ['baseHtmlInput', 'htmlInput', 'cssInput', 'jsInput'].map(id => document.getElementById(id));
             if (inputs.every(input => input)) {
                 inputs.forEach(input => input.addEventListener('input', updatePreview));
                 updatePreview();
