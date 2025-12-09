@@ -246,6 +246,17 @@
     <div class="editor">
         <div class="textarea-group">
             <div class="textarea-container">
+                <h3>Base HTML (Template)</h3>
+                <textarea id="baseHtmlInput" placeholder="Upload or paste base HTML template here..."></textarea>
+                <div class="button-group">
+                    <button class="clear" onclick="clearCode('baseHtmlInput')">Clear</button>
+                    <button class="paste" onclick="pasteCode('baseHtmlInput')">Paste</button>
+                    <button class="copy" onclick="copyCode('baseHtmlInput')">Copy</button>
+                    <label for="baseHtmlUpload" class="upload" style="padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: #ffffff; width: 80px; text-align: center;">Upload</label>
+                    <input type="file" id="baseHtmlUpload" accept=".html,.htm" onchange="uploadCode('baseHtmlInput', this)">
+                </div>
+            </div>
+            <div class="textarea-container">
                 <h3>HTML</h3>
                 <textarea id="htmlInput" placeholder="Enter your HTML code here..."></textarea>
                 <div class="button-group">
@@ -280,29 +291,107 @@
     </div>
     <script>
         function updatePreview() {
+            const baseHtmlInput = document.getElementById('baseHtmlInput');
             const htmlInput = document.getElementById('htmlInput');
             const cssInput = document.getElementById('cssInput');
             const jsInput = document.getElementById('jsInput');
             const iframe = document.getElementById('previewFrame');
+            
             if (!htmlInput || !cssInput || !jsInput || !iframe) {
                 console.error('Missing required elements');
                 return;
             }
-            const htmlCode = htmlInput.value || '<html><body></body></html>';
+            
+            // Get base HTML content
+            let baseHtmlContent = baseHtmlInput ? baseHtmlInput.value : '';
+            
+            // Get user HTML, CSS, and JS
+            const htmlCode = htmlInput.value || '';
             const cssCode = cssInput.value || '';
             const jsCode = jsInput.value || '';
-            const fullHtml = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <style>${cssCode}</style>
-                </head>
-                <body>
-                    ${htmlCode}
-                    <script>${jsCode}<\/script>
-                </body>
-                </html>
-            `;
+            
+            // If there's a base HTML template, use it as the foundation
+            let fullHtml;
+            if (baseHtmlContent.trim()) {
+                // Check if base HTML already has <style> and <script> tags
+                let styleInsertionPoint = baseHtmlContent.indexOf('</style>');
+                let scriptInsertionPoint = baseHtmlContent.lastIndexOf('</script>');
+                
+                if (styleInsertionPoint === -1) {
+                    // Find head tag to insert style
+                    const headEnd = baseHtmlContent.indexOf('</head>');
+                    if (headEnd !== -1) {
+                        baseHtmlContent = baseHtmlContent.substring(0, headEnd) + 
+                                          '<style>' + cssCode + '</style>' + 
+                                          baseHtmlContent.substring(headEnd);
+                    } else {
+                        // No head found, insert style before body or at the end
+                        const bodyStart = baseHtmlContent.indexOf('<body');
+                        if (bodyStart !== -1) {
+                            const bodyTagEnd = baseHtmlContent.indexOf('>', bodyStart) + 1;
+                            baseHtmlContent = baseHtmlContent.substring(0, bodyTagEnd) + 
+                                              '<style>' + cssCode + '</style>' + 
+                                              baseHtmlContent.substring(bodyTagEnd);
+                        } else {
+                            baseHtmlContent = '<style>' + cssCode + '</style>' + baseHtmlContent;
+                        }
+                    }
+                } else {
+                    // Insert CSS before closing style tag
+                    baseHtmlContent = baseHtmlContent.substring(0, styleInsertionPoint) + 
+                                      cssCode + 
+                                      baseHtmlContent.substring(styleInsertionPoint);
+                }
+                
+                if (scriptInsertionPoint === -1) {
+                    // Insert script before closing body tag or at the end
+                    const bodyEnd = baseHtmlContent.lastIndexOf('</body>');
+                    if (bodyEnd !== -1) {
+                        baseHtmlContent = baseHtmlContent.substring(0, bodyEnd) + 
+                                          '<script>' + jsCode + '</script>' + 
+                                          baseHtmlContent.substring(bodyEnd);
+                    } else {
+                        baseHtmlContent += '<script>' + jsCode + '</script>';
+                    }
+                } else {
+                    // Insert JS before closing script tag
+                    baseHtmlContent = baseHtmlContent.substring(0, scriptInsertionPoint) + 
+                                      jsCode + 
+                                      baseHtmlContent.substring(scriptInsertionPoint);
+                }
+                
+                // Insert user HTML content
+                const bodyStart = baseHtmlContent.indexOf('<body');
+                if (bodyStart !== -1) {
+                    const bodyTagEnd = baseHtmlContent.indexOf('>', bodyStart) + 1;
+                    baseHtmlContent = baseHtmlContent.substring(0, bodyTagEnd) + 
+                                      htmlCode + 
+                                      baseHtmlContent.substring(bodyTagEnd);
+                } else {
+                    // No body tag found, just append HTML
+                    baseHtmlContent += htmlCode;
+                }
+                
+                fullHtml = baseHtmlContent;
+            } else {
+                // No base HTML, use the original approach
+                fullHtml = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Preview</title>
+                        <style>${cssCode}</style>
+                    </head>
+                    <body>
+                        ${htmlCode}
+                        <script>${jsCode}<\/script>
+                    </body>
+                    </html>
+                `;
+            }
+            
             const doc = iframe.contentDocument || iframe.contentWindow.document;
             doc.open();
             doc.write(fullHtml);
@@ -407,6 +496,7 @@
         }
 
         function mergeCode() {
+            const baseHtmlInput = document.getElementById('baseHtmlInput');
             const htmlInput = document.getElementById('htmlInput');
             const cssInput = document.getElementById('cssInput');
             const jsInput = document.getElementById('jsInput');
@@ -416,35 +506,59 @@
                 return;
             }
 
-            let htmlContent = htmlInput.value;
-            const cssContent = cssInput.value.trim();
-            const jsContent = jsInput.value.trim();
-
-            // Create a complete HTML document structure
-            let mergedHTML = `<!DOCTYPE html>
+            // If there's a base HTML, use it as the starting point
+            let mergedHTML;
+            if (baseHtmlInput && baseHtmlInput.value.trim()) {
+                mergedHTML = baseHtmlInput.value.trim();
+            } else {
+                mergedHTML = `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Merged Document</title>
-    <style>
-${cssContent}
-    </style>
 </head>
 <body>
-    ${htmlContent}
-    <script>
-${jsContent}
-    <\/script>
 </body>
 </html>`;
+            }
+
+            let htmlContent = htmlInput.value;
+            const cssContent = cssInput.value.trim();
+            const jsContent = jsInput.value.trim();
+
+            // Insert CSS into head
+            const headEnd = mergedHTML.indexOf('</head>');
+            if (headEnd !== -1) {
+                mergedHTML = mergedHTML.substring(0, headEnd) + 
+                            '<style>\n' + cssContent + '\n</style>' + 
+                            mergedHTML.substring(headEnd);
+            }
+
+            // Insert HTML into body
+            const bodyStart = mergedHTML.indexOf('<body');
+            if (bodyStart !== -1) {
+                const bodyTagEnd = mergedHTML.indexOf('>', bodyStart) + 1;
+                mergedHTML = mergedHTML.substring(0, bodyTagEnd) + 
+                            '\n' + htmlContent + '\n' + 
+                            mergedHTML.substring(bodyTagEnd);
+            }
+
+            // Insert JS before closing body tag
+            const bodyEnd = mergedHTML.lastIndexOf('</body>');
+            if (bodyEnd !== -1) {
+                mergedHTML = mergedHTML.substring(0, bodyEnd) + 
+                            '<script>\n' + jsContent + '\n</script>\n' + 
+                            mergedHTML.substring(bodyEnd);
+            }
 
             // Update HTML textarea
             htmlInput.value = mergedHTML;
             
-            // Clear CSS and JS textareas
+            // Clear other textareas
             cssInput.value = '';
             jsInput.value = '';
+            if (baseHtmlInput) baseHtmlInput.value = '';
 
             updatePreview();
         }
@@ -469,9 +583,13 @@ ${jsContent}
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            const inputs = ['htmlInput', 'cssInput', 'jsInput'].map(id => document.getElementById(id));
-            if (inputs.every(input => input)) {
-                inputs.forEach(input => input.addEventListener('input', updatePreview));
+            const inputs = ['baseHtmlInput', 'htmlInput', 'cssInput', 'jsInput'].map(id => document.getElementById(id));
+            if (inputs.every(input => input !== null)) {
+                inputs.forEach(input => {
+                    if (input) {
+                        input.addEventListener('input', updatePreview);
+                    }
+                });
                 updatePreview();
             } else {
                 console.error('One or more textarea elements not found');
