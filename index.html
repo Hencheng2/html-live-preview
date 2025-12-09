@@ -284,25 +284,20 @@
                     <button class="clear" onclick="clearCode('baseInput')">Clear</button>
                     <button class="paste" onclick="pasteCode('baseInput')">Paste</button>
                     <button class="copy" onclick="copyCode('baseInput')">Copy</button>
-                    <button class="apply" onclick="applyBaseTemplate()" style="background-color: #7c3aed;">Apply</button>
-                    <label for="baseUpload" class="upload" style="padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: #ffffff; width: 80px; text-align: center; background-color: #7c3aed;">Upload</label>
+                    <label for="baseUpload" class="upload" style="padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: #ffffff; width: 80px; text-align: center;">Upload</label>
                     <input type="file" id="baseUpload" accept=".html,.htm" onchange="uploadCode('baseInput', this)">
                 </div>
             </div>
         </div>
     </div>
     <script>
-        // Store the base HTML template
-        let baseHTMLTemplate = null;
-
         function updatePreview() {
             const htmlInput = document.getElementById('htmlInput');
             const cssInput = document.getElementById('cssInput');
             const jsInput = document.getElementById('jsInput');
             const baseInput = document.getElementById('baseInput');
             const iframe = document.getElementById('previewFrame');
-            
-            if (!htmlInput || !cssInput || !jsInput || !baseInput || !iframe) {
+            if (!htmlInput || !cssInput || !jsInput || !iframe) {
                 console.error('Missing required elements');
                 return;
             }
@@ -310,7 +305,7 @@
             const htmlCode = htmlInput.value || '';
             const cssCode = cssInput.value || '';
             const jsCode = jsInput.value || '';
-            const baseCode = baseInput.value || '';
+            const baseCode = baseInput ? baseInput.value || '' : '';
             
             let fullHtml = '';
             
@@ -329,10 +324,8 @@
                     if (processedBase.includes('</head>')) {
                         processedBase = processedBase.replace('</head>', `<style>${cssCode}</style></head>`);
                     } else if (processedBase.includes('<head>')) {
-                        // If head exists but no closing tag, add before </head>
                         processedBase = processedBase.replace('<head>', `<head><style>${cssCode}</style>`);
                     } else {
-                        // Add style at beginning
                         processedBase = `<style>${cssCode}</style>${processedBase}`;
                     }
                 }
@@ -343,10 +336,8 @@
                     if (processedBase.includes('</body>')) {
                         processedBase = processedBase.replace('</body>', `<script>${jsCode}</script></body>`);
                     } else if (processedBase.includes('</html>')) {
-                        // Insert before closing html tag
                         processedBase = processedBase.replace('</html>', `<script>${jsCode}</script></html>`);
                     } else {
-                        // Add at end
                         processedBase += `<script>${jsCode}</script>`;
                     }
                 }
@@ -531,42 +522,6 @@ ${jsContent}
                 alert('Failed to read the file.');
             };
             reader.readAsText(file);
-        }
-
-        function applyBaseTemplate() {
-            const baseInput = document.getElementById('baseInput');
-            const htmlInput = document.getElementById('htmlInput');
-            
-            if (!baseInput || !htmlInput) {
-                alert('Error: Textarea not found.');
-                return;
-            }
-            
-            const baseCode = baseInput.value.trim();
-            const currentHTML = htmlInput.value.trim();
-            
-            if (!baseCode) {
-                alert('Please enter base HTML code first.');
-                return;
-            }
-            
-            if (baseCode.includes('{{content}}')) {
-                // Replace placeholder with current HTML
-                htmlInput.value = baseCode.replace('{{content}}', currentHTML);
-            } else {
-                // Append current HTML to the base template
-                // Try to find a good insertion point
-                if (baseCode.includes('</body>')) {
-                    htmlInput.value = baseCode.replace('</body>', currentHTML + '</body>');
-                } else if (baseCode.includes('</html>')) {
-                    htmlInput.value = baseCode.replace('</html>', currentHTML + '</html>');
-                } else {
-                    htmlInput.value = baseCode + currentHTML;
-                }
-            }
-            
-            updatePreview();
-            alert('Base template applied to HTML. Your original HTML has been merged with the base template.');
         }
 
         document.addEventListener('DOMContentLoaded', () => {
