@@ -21,7 +21,7 @@
             padding: 8px 16px;
             cursor: pointer;
             border: none;
-            background-color: #166534; /* Dark green color */
+            background-color: #166534;
             color: #ffffff;
             border-radius: 5px;
             z-index: 1001;
@@ -30,7 +30,7 @@
             display: inline-block;
         }
         .back-button:hover {
-            background-color: #14532d; /* Slightly darker green on hover */
+            background-color: #14532d;
         }
         .preview-controls {
             position: fixed;
@@ -95,6 +95,8 @@
             border: none;
             background-color: #ffffff;
         }
+        
+        /* Editor Area */
         .editor {
             position: fixed;
             bottom: 0;
@@ -194,6 +196,95 @@
         .editor input[type="file"] {
             display: none;
         }
+        
+        /* HTML Tabs */
+        .html-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 5px;
+            padding: 5px;
+            background-color: #252525;
+            border-radius: 5px;
+        }
+        .html-tab {
+            padding: 6px 12px;
+            background-color: #3f3f3f;
+            color: #e0e0e0;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .html-tab:hover {
+            background-color: #4a4a4a;
+        }
+        .html-tab.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .html-tab .tab-close {
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            padding: 0;
+            font-size: 14px;
+            line-height: 1;
+            opacity: 0.7;
+        }
+        .html-tab .tab-close:hover {
+            opacity: 1;
+        }
+        .add-tab-btn {
+            padding: 6px 10px;
+            background-color: #16a34a;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .add-tab-btn:hover {
+            background-color: #15803d;
+        }
+        
+        /* Tab Content */
+        .html-tab-content {
+            display: none;
+        }
+        .html-tab-content.active {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        /* Page Selector */
+        .page-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 5px;
+            background-color: #252525;
+            border-radius: 5px;
+        }
+        .page-selector label {
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .page-selector select {
+            flex: 1;
+            padding: 6px;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            border: 1px solid #3f3f3f;
+            border-radius: 3px;
+            font-size: 12px;
+        }
 
         /* Responsive adjustments */
         @media (max-width: 768px) {
@@ -212,6 +303,9 @@
             }
             .editor .textarea-group {
                 flex-direction: column;
+            }
+            .html-tabs {
+                flex-wrap: wrap;
             }
         }
 
@@ -238,13 +332,16 @@
         <button id="tabletBtn" onclick="setPreview('tablet')">Tablet (768x1024)</button>
         <button id="laptopBtn" class="active" onclick="setPreview('laptop')">Laptop (1366x768)</button>
     </div>
+    
     <div class="preview">
         <div class="preview-window laptop" id="previewWindow">
             <iframe id="previewFrame"></iframe>
         </div>
     </div>
+    
     <div class="editor">
         <div class="textarea-group">
+            <!-- Base HTML Section -->
             <div class="textarea-container">
                 <h3>Base HTML</h3>
                 <textarea id="baseHtmlInput" placeholder="Enter your base HTML template here..."></textarea>
@@ -256,19 +353,33 @@
                     <input type="file" id="baseHtmlUpload" accept=".html,.htm" onchange="uploadCode('baseHtmlInput', this)">
                 </div>
             </div>
+            
+            <!-- Multiple HTML Sections -->
             <div class="textarea-container">
-                <h3>HTML</h3>
-                <textarea id="htmlInput" placeholder="Enter your HTML code here..."></textarea>
+                <div class="html-tabs" id="htmlTabs">
+                    <!-- Tabs will be generated here -->
+                </div>
+                
+                <div class="page-selector">
+                    <label for="pageSelect">Preview Page:</label>
+                    <select id="pageSelect" onchange="changeActivePage()">
+                        <!-- Options will be generated here -->
+                    </select>
+                </div>
+                
+                <!-- Tab contents will be generated here -->
+                <div id="htmlTabContents">
+                    <!-- Tab content will be generated here -->
+                </div>
+                
                 <div class="button-group">
-                    <button class="clear" onclick="clearCode('htmlInput')">Clear</button>
-                    <button class="paste" onclick="pasteCode('htmlInput')">Paste</button>
-                    <button class="copy" onclick="copyCode('htmlInput')">Copy</button>
+                    <button class="add-tab-btn" onclick="addHtmlTab()">+ Add Page</button>
                     <button class="distinguish" onclick="distinguishCode()">Distinguish</button>
                     <button class="merge" onclick="mergeCode()">Merge</button>
-                    <label for="htmlUpload" class="upload" style="padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: #ffffff; width: 80px; text-align: center;">Upload</label>
-                    <input type="file" id="htmlUpload" accept=".html,.htm" onchange="uploadCode('htmlInput', this)">
                 </div>
             </div>
+            
+            <!-- CSS Section -->
             <div class="textarea-container">
                 <h3>CSS</h3>
                 <textarea id="cssInput" placeholder="Enter your CSS code here..."></textarea>
@@ -278,6 +389,8 @@
                     <button class="copy" onclick="copyCode('cssInput')">Copy</button>
                 </div>
             </div>
+            
+            <!-- JavaScript Section -->
             <div class="textarea-container">
                 <h3>JavaScript</h3>
                 <textarea id="jsInput" placeholder="Enter your JavaScript code here..."></textarea>
@@ -289,20 +402,168 @@
             </div>
         </div>
     </div>
+    
     <script>
+        // HTML Tab Management
+        let htmlTabs = [];
+        let activeTabId = null;
+        let tabCounter = 0;
+        
+        // Initialize with one tab
+        document.addEventListener('DOMContentLoaded', () => {
+            addHtmlTab('Home');
+            updatePreview();
+            
+            // Add input listeners
+            document.getElementById('baseHtmlInput').addEventListener('input', updatePreview);
+            document.getElementById('cssInput').addEventListener('input', updatePreview);
+            document.getElementById('jsInput').addEventListener('input', updatePreview);
+        });
+        
+        function addHtmlTab(name = '') {
+            tabCounter++;
+            const tabId = `htmlTab_${tabCounter}`;
+            const tabName = name || `Page ${tabCounter}`;
+            
+            // Create tab object
+            const tab = {
+                id: tabId,
+                name: tabName,
+                html: '',
+                css: '',
+                js: ''
+            };
+            
+            htmlTabs.push(tab);
+            
+            // If this is the first tab, make it active
+            if (htmlTabs.length === 1) {
+                activeTabId = tabId;
+            }
+            
+            // Update UI
+            updateTabUI();
+            
+            return tabId;
+        }
+        
+        function updateTabUI() {
+            const tabsContainer = document.getElementById('htmlTabs');
+            const contentsContainer = document.getElementById('htmlTabContents');
+            const pageSelect = document.getElementById('pageSelect');
+            
+            // Clear containers
+            tabsContainer.innerHTML = '';
+            contentsContainer.innerHTML = '';
+            pageSelect.innerHTML = '';
+            
+            // Create tabs and contents
+            htmlTabs.forEach(tab => {
+                // Create tab button
+                const tabButton = document.createElement('button');
+                tabButton.className = `html-tab ${tab.id === activeTabId ? 'active' : ''}`;
+                tabButton.innerHTML = `
+                    ${tab.name}
+                    ${htmlTabs.length > 1 ? '<button class="tab-close" onclick="removeHtmlTab(\'' + tab.id + '\')">&times;</button>' : ''}
+                `;
+                tabButton.onclick = () => switchTab(tab.id);
+                tabsContainer.appendChild(tabButton);
+                
+                // Create tab content
+                const tabContent = document.createElement('div');
+                tabContent.className = `html-tab-content ${tab.id === activeTabId ? 'active' : ''}`;
+                tabContent.id = `${tab.id}_content`;
+                
+                tabContent.innerHTML = `
+                    <textarea 
+                        id="${tab.id}_html" 
+                        placeholder="Enter HTML for ${tab.name}..."
+                        oninput="updateTabCode('${tab.id}', 'html', this.value); updatePreview()"
+                    >${tab.html}</textarea>
+                `;
+                
+                contentsContainer.appendChild(tabContent);
+                
+                // Add to page selector
+                const option = document.createElement('option');
+                option.value = tab.id;
+                option.textContent = tab.name;
+                if (tab.id === activeTabId) {
+                    option.selected = true;
+                }
+                pageSelect.appendChild(option);
+            });
+            
+            // Add "+" button
+            const addButton = document.createElement('button');
+            addButton.className = 'add-tab-btn';
+            addButton.textContent = '+';
+            addButton.onclick = addHtmlTab;
+            tabsContainer.appendChild(addButton);
+        }
+        
+        function switchTab(tabId) {
+            activeTabId = tabId;
+            updateTabUI();
+            updatePreview();
+        }
+        
+        function removeHtmlTab(tabId) {
+            if (htmlTabs.length <= 1) {
+                alert('You must have at least one HTML tab.');
+                return;
+            }
+            
+            const tabIndex = htmlTabs.findIndex(tab => tab.id === tabId);
+            if (tabIndex === -1) return;
+            
+            // Remove the tab
+            htmlTabs.splice(tabIndex, 1);
+            
+            // If we removed the active tab, switch to another tab
+            if (tabId === activeTabId) {
+                activeTabId = htmlTabs.length > 0 ? htmlTabs[0].id : null;
+            }
+            
+            updateTabUI();
+            updatePreview();
+        }
+        
+        function updateTabCode(tabId, type, value) {
+            const tab = htmlTabs.find(t => t.id === tabId);
+            if (tab) {
+                tab[type] = value;
+            }
+        }
+        
+        function changeActivePage() {
+            const pageSelect = document.getElementById('pageSelect');
+            const selectedTabId = pageSelect.value;
+            switchTab(selectedTabId);
+        }
+        
+        // Get active tab HTML
+        function getActiveTabHtml() {
+            const activeTab = htmlTabs.find(tab => tab.id === activeTabId);
+            return activeTab ? activeTab.html : '';
+        }
+        
+        // Original functions (updated to work with multiple tabs)
         function updatePreview() {
-            const htmlInput = document.getElementById('htmlInput');
             const cssInput = document.getElementById('cssInput');
             const jsInput = document.getElementById('jsInput');
             const baseHtmlInput = document.getElementById('baseHtmlInput');
             const iframe = document.getElementById('previewFrame');
             
-            if (!htmlInput || !cssInput || !jsInput || !baseHtmlInput || !iframe) {
+            if (!cssInput || !jsInput || !baseHtmlInput || !iframe) {
                 console.error('Missing required elements');
                 return;
             }
             
-            const htmlCode = htmlInput.value || '';
+            const activeTab = htmlTabs.find(tab => tab.id === activeTabId);
+            if (!activeTab) return;
+            
+            const htmlCode = activeTab.html || '';
             const cssCode = cssInput.value || '';
             const jsCode = jsInput.value || '';
             const baseHtmlCode = baseHtmlInput.value || '<html><body></body></html>';
@@ -317,7 +578,6 @@
                 } else if (fullHtml.includes('<head>')) {
                     fullHtml = fullHtml.replace('<head>', `<head><style>${cssCode}</style>`);
                 } else {
-                    // If no head tag, insert style in the body
                     if (fullHtml.includes('</body>')) {
                         fullHtml = fullHtml.replace('</body>', `<style>${cssCode}</style></body>`);
                     } else {
@@ -333,7 +593,6 @@
                 } else if (fullHtml.includes('<body>')) {
                     fullHtml = fullHtml.replace('<body>', `<body>${htmlCode}`);
                 } else {
-                    // If no body tag, append to the end
                     fullHtml += htmlCode;
                 }
             }
@@ -345,7 +604,6 @@
                 } else if (fullHtml.includes('<body>')) {
                     fullHtml = fullHtml.replace('<body>', `<body><script>${jsCode}<\/script>`);
                 } else {
-                    // If no body tag, append to the end
                     fullHtml += `<script>${jsCode}<\/script>`;
                 }
             }
@@ -355,7 +613,7 @@
             doc.write(fullHtml);
             doc.close();
         }
-
+        
         function setPreview(device) {
             const previewWindow = document.getElementById('previewWindow');
             const buttons = {
@@ -368,24 +626,25 @@
                 previewWindow.classList.remove('phone', 'tablet', 'laptop');
                 previewWindow.classList.add(device);
                 
-                // Update button states
                 Object.values(buttons).forEach(btn => btn.classList.remove('active'));
                 buttons[device].classList.add('active');
                 
-                updatePreview(); // Refresh preview after size change
+                updatePreview();
             }
         }
-
+        
         function clearCode(textareaId) {
             const textarea = document.getElementById(textareaId);
             if (textarea) {
                 textarea.value = '';
-                updatePreview();
+                if (textareaId === 'baseHtmlInput' || textareaId === 'cssInput' || textareaId === 'jsInput') {
+                    updatePreview();
+                }
             } else {
                 alert('Error: Textarea not found.');
             }
         }
-
+        
         async function pasteCode(textareaId) {
             const textarea = document.getElementById(textareaId);
             if (!textarea) {
@@ -395,12 +654,15 @@
             try {
                 const text = await navigator.clipboard.readText();
                 textarea.value = text;
-                updatePreview();
+                
+                if (textareaId === 'baseHtmlInput' || textareaId === 'cssInput' || textareaId === 'jsInput') {
+                    updatePreview();
+                }
             } catch (err) {
                 alert('Failed to paste content. Ensure clipboard access is allowed.');
             }
         }
-
+        
         function copyCode(textareaId) {
             const textarea = document.getElementById(textareaId);
             if (!textarea) {
@@ -414,23 +676,25 @@
                 alert('Failed to copy content.');
             });
         }
-
+        
         function distinguishCode() {
-            const htmlInput = document.getElementById('htmlInput');
             const cssInput = document.getElementById('cssInput');
             const jsInput = document.getElementById('jsInput');
             const baseHtmlInput = document.getElementById('baseHtmlInput');
             
-            if (!htmlInput || !cssInput || !jsInput || !baseHtmlInput) {
+            if (!cssInput || !jsInput || !baseHtmlInput) {
                 alert('Error: Textarea not found.');
                 return;
             }
-
-            let htmlContent = htmlInput.value;
+            
+            const activeTab = htmlTabs.find(tab => tab.id === activeTabId);
+            if (!activeTab) return;
+            
+            let htmlContent = activeTab.html;
             let baseHtmlContent = baseHtmlInput.value;
             let cssContent = '';
             let jsContent = '';
-
+            
             // Extract CSS from <style> tags
             const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
             let styleMatch;
@@ -439,12 +703,11 @@
                 htmlContent = htmlContent.replace(styleMatch[0], '');
             }
             
-            // Also extract CSS from base HTML
             while ((styleMatch = styleRegex.exec(baseHtmlContent)) !== null) {
                 cssContent += styleMatch[1].trim() + '\n';
                 baseHtmlContent = baseHtmlContent.replace(styleMatch[0], '');
             }
-
+            
             // Extract JavaScript from <script> tags
             const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
             let scriptMatch;
@@ -453,48 +716,52 @@
                 htmlContent = htmlContent.replace(scriptMatch[0], '');
             }
             
-            // Also extract JavaScript from base HTML
             while ((scriptMatch = scriptRegex.exec(baseHtmlContent)) !== null) {
                 jsContent += scriptMatch[1].trim() + '\n';
                 baseHtmlContent = baseHtmlContent.replace(scriptMatch[0], '');
             }
-
+            
             // Update textareas
-            htmlInput.value = htmlContent.trim();
+            activeTab.html = htmlContent.trim();
             baseHtmlInput.value = baseHtmlContent.trim();
             cssInput.value = cssContent.trim();
             jsInput.value = jsContent.trim();
-
+            
+            // Update UI
+            const textarea = document.getElementById(`${activeTab.id}_html`);
+            if (textarea) {
+                textarea.value = activeTab.html;
+            }
+            
             updatePreview();
         }
-
+        
         function mergeCode() {
-            const htmlInput = document.getElementById('htmlInput');
             const cssInput = document.getElementById('cssInput');
             const jsInput = document.getElementById('jsInput');
             const baseHtmlInput = document.getElementById('baseHtmlInput');
             
-            if (!htmlInput || !cssInput || !jsInput || !baseHtmlInput) {
+            if (!cssInput || !jsInput || !baseHtmlInput) {
                 alert('Error: Textarea not found.');
                 return;
             }
-
-            let htmlContent = htmlInput.value;
+            
+            const activeTab = htmlTabs.find(tab => tab.id === activeTabId);
+            if (!activeTab) return;
+            
+            let htmlContent = activeTab.html;
             const baseHtmlContent = baseHtmlInput.value.trim();
             const cssContent = cssInput.value.trim();
             const jsContent = jsInput.value.trim();
-
-            // Start with the base HTML template
+            
             let mergedHTML = baseHtmlContent;
             
-            // Insert CSS into <head> if not already present
             if (cssContent) {
                 if (mergedHTML.includes('</head>')) {
                     mergedHTML = mergedHTML.replace('</head>', `<style>${cssContent}</style></head>`);
                 } else if (mergedHTML.includes('<head>')) {
                     mergedHTML = mergedHTML.replace('<head>', `<head><style>${cssContent}</style>`);
                 } else {
-                    // If no head tag, insert style in the body
                     if (mergedHTML.includes('</body>')) {
                         mergedHTML = mergedHTML.replace('</body>', `<style>${cssContent}</style></body>`);
                     } else {
@@ -503,41 +770,43 @@
                 }
             }
             
-            // Insert HTML content into the body
             if (htmlContent) {
                 if (mergedHTML.includes('</body>')) {
                     mergedHTML = mergedHTML.replace('</body>', `${htmlContent}</body>`);
                 } else if (mergedHTML.includes('<body>')) {
                     mergedHTML = mergedHTML.replace('<body>', `<body>${htmlContent}`);
                 } else {
-                    // If no body tag, append to the end
                     mergedHTML += htmlContent;
                 }
             }
             
-            // Insert JavaScript before closing body tag
             if (jsContent) {
                 if (mergedHTML.includes('</body>')) {
                     mergedHTML = mergedHTML.replace('</body>', `<script>${jsContent}<\/script></body>`);
                 } else if (mergedHTML.includes('<body>')) {
                     mergedHTML = mergedHTML.replace('<body>', `<body><script>${jsContent}<\/script>`);
                 } else {
-                    // If no body tag, append to the end
                     mergedHTML += `<script>${jsContent}<\/script>`;
                 }
             }
-
-            // Update HTML textarea
-            htmlInput.value = mergedHTML;
+            
+            // Update active tab
+            activeTab.html = mergedHTML;
             
             // Clear other textareas
             baseHtmlInput.value = '';
             cssInput.value = '';
             jsInput.value = '';
-
+            
+            // Update UI
+            const textarea = document.getElementById(`${activeTab.id}_html`);
+            if (textarea) {
+                textarea.value = activeTab.html;
+            }
+            
             updatePreview();
         }
-
+        
         function uploadCode(textareaId, input) {
             const textarea = document.getElementById(textareaId);
             if (!textarea || !input.files || input.files.length === 0) {
@@ -548,24 +817,16 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 textarea.value = e.target.result;
-                updatePreview();
-                input.value = ''; // Reset file input
+                if (textareaId === 'baseHtmlInput' || textareaId === 'cssInput' || textareaId === 'jsInput') {
+                    updatePreview();
+                }
+                input.value = '';
             };
             reader.onerror = function() {
                 alert('Failed to read the file.');
             };
             reader.readAsText(file);
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const inputs = ['baseHtmlInput', 'htmlInput', 'cssInput', 'jsInput'].map(id => document.getElementById(id));
-            if (inputs.every(input => input)) {
-                inputs.forEach(input => input.addEventListener('input', updatePreview));
-                updatePreview();
-            } else {
-                console.error('One or more textarea elements not found');
-            }
-        });
     </script>
 </body>
 </html>
