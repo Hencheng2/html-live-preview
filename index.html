@@ -262,15 +262,6 @@
             gap: 5px;
         }
         
-        /* Tab Content Controls */
-        .tab-content-controls {
-            display: flex;
-            gap: 5px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 5px;
-        }
-        
         /* Page Selector */
         .page-selector {
             display: flex;
@@ -293,6 +284,20 @@
             border: 1px solid #3f3f3f;
             border-radius: 3px;
             font-size: 12px;
+        }
+        
+        /* Tab-specific buttons */
+        .tab-buttons {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 5px;
+        }
+        .tab-buttons button {
+            padding: 4px 8px;
+            font-size: 11px;
+            min-width: 60px;
         }
 
         /* Responsive adjustments */
@@ -330,11 +335,11 @@
             .editor button {
                 width: 100%;
             }
-            .tab-content-controls {
+            .tab-buttons {
                 flex-direction: column;
                 align-items: center;
             }
-            .tab-content-controls button {
+            .tab-buttons button {
                 width: 100%;
             }
         }
@@ -436,7 +441,7 @@
             document.getElementById('jsInput').addEventListener('input', updatePreview);
         });
         
-        function addHtmlTab(name = '') {
+        function addHtmlTab(name = '', initialContent = '') {
             tabCounter++;
             const tabId = `htmlTab_${tabCounter}`;
             const tabName = name || `Page ${tabCounter}`;
@@ -445,7 +450,7 @@
             const tab = {
                 id: tabId,
                 name: tabName,
-                html: '',
+                html: initialContent,
                 css: '',
                 js: ''
             };
@@ -490,29 +495,21 @@
                 tabContent.className = `html-tab-content ${tab.id === activeTabId ? 'active' : ''}`;
                 tabContent.id = `${tab.id}_content`;
                 
-                // Create HTML textarea
-                const textarea = document.createElement('textarea');
-                textarea.id = `${tab.id}_html`;
-                textarea.placeholder = `Enter HTML for ${tab.name}...`;
-                textarea.value = tab.html;
-                textarea.oninput = function() {
-                    updateTabCode(tab.id, 'html', this.value);
-                    updatePreview();
-                };
-                
-                // Create tab-specific buttons
-                const buttonGroup = document.createElement('div');
-                buttonGroup.className = 'tab-content-controls';
-                buttonGroup.innerHTML = `
-                    <button class="clear" onclick="clearTabCode('${tab.id}')">Clear</button>
-                    <button class="paste" onclick="pasteTabCode('${tab.id}')">Paste</button>
-                    <button class="copy" onclick="copyTabCode('${tab.id}')">Copy</button>
-                    <label for="${tab.id}_upload" class="upload" style="padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: #ffffff; width: 80px; text-align: center;">Upload</label>
-                    <input type="file" id="${tab.id}_upload" accept=".html,.htm" onchange="uploadTabCode('${tab.id}', this)">
+                tabContent.innerHTML = `
+                    <textarea 
+                        id="${tab.id}_html" 
+                        placeholder="Enter HTML for ${tab.name}..."
+                        oninput="updateTabCode('${tab.id}', 'html', this.value); updatePreview()"
+                    >${tab.html}</textarea>
+                    <div class="tab-buttons">
+                        <button class="clear" onclick="clearTabCode('${tab.id}')">Clear</button>
+                        <button class="paste" onclick="pasteTabCode('${tab.id}')">Paste</button>
+                        <button class="copy" onclick="copyTabCode('${tab.id}')">Copy</button>
+                        <label for="${tab.id}_upload" class="upload" style="padding: 4px 8px; cursor: pointer; border: none; border-radius: 5px; color: #ffffff; width: 60px; text-align: center; font-size: 11px;">Upload</label>
+                        <input type="file" id="${tab.id}_upload" accept=".html,.htm" onchange="uploadTabCode('${tab.id}', this)">
+                    </div>
                 `;
                 
-                tabContent.appendChild(textarea);
-                tabContent.appendChild(buttonGroup);
                 contentsContainer.appendChild(tabContent);
                 
                 // Add to page selector
@@ -582,26 +579,22 @@
                 if (textarea) {
                     textarea.value = '';
                 }
-                if (tabId === activeTabId) {
-                    updatePreview();
-                }
+                updatePreview();
             }
         }
         
         async function pasteTabCode(tabId) {
+            const tab = htmlTabs.find(t => t.id === tabId);
+            if (!tab) return;
+            
             try {
                 const text = await navigator.clipboard.readText();
-                const tab = htmlTabs.find(t => t.id === tabId);
-                if (tab) {
-                    tab.html = text;
-                    const textarea = document.getElementById(`${tabId}_html`);
-                    if (textarea) {
-                        textarea.value = text;
-                    }
-                    if (tabId === activeTabId) {
-                        updatePreview();
-                    }
+                tab.html = text;
+                const textarea = document.getElementById(`${tabId}_html`);
+                if (textarea) {
+                    textarea.value = text;
                 }
+                updatePreview();
             } catch (err) {
                 alert('Failed to paste content. Ensure clipboard access is allowed.');
             }
@@ -609,17 +602,18 @@
         
         function copyTabCode(tabId) {
             const tab = htmlTabs.find(t => t.id === tabId);
-            if (tab) {
-                navigator.clipboard.writeText(tab.html).then(() => {
-                    alert('Code copied to clipboard!');
-                }).catch(() => {
-                    alert('Failed to copy content.');
-                });
-            }
+            if (!tab) return;
+            
+            navigator.clipboard.writeText(tab.html).then(() => {
+                alert('Code copied to clipboard!');
+            }).catch(() => {
+                alert('Failed to copy content.');
+            });
         }
         
         function uploadTabCode(tabId, input) {
-            if (!input.files || input.files.length === 0) {
+            const tab = htmlTabs.find(t => t.id === tabId);
+            if (!tab || !input.files || input.files.length === 0) {
                 alert('Error: No file selected.');
                 return;
             }
@@ -628,33 +622,21 @@
             const reader = new FileReader();
             
             reader.onload = function(e) {
-                const tab = htmlTabs.find(t => t.id === tabId);
-                if (tab) {
-                    // Extract filename without extension for tab name
-                    const fileName = file.name;
-                    const nameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
-                    
-                    // Update tab name if it's a default name
-                    if (tab.name.startsWith('Page ') || !tab.name) {
-                        tab.name = nameWithoutExt;
-                    }
-                    
-                    // Update tab content
-                    tab.html = e.target.result;
-                    
-                    // Update UI
-                    const textarea = document.getElementById(`${tabId}_html`);
-                    if (textarea) {
-                        textarea.value = tab.html;
-                    }
-                    
-                    // Update tab UI to reflect new name
-                    updateTabUI();
-                    
-                    if (tabId === activeTabId) {
-                        updatePreview();
-                    }
+                // Update tab content
+                tab.html = e.target.result;
+                
+                // Get filename without extension for tab name
+                const fileName = file.name.replace(/\.[^/.]+$/, "");
+                tab.name = fileName || tab.name;
+                
+                // Update UI
+                const textarea = document.getElementById(`${tabId}_html`);
+                if (textarea) {
+                    textarea.value = tab.html;
                 }
+                
+                updateTabUI();
+                updatePreview();
                 input.value = ''; // Reset file input
             };
             
@@ -800,12 +782,12 @@
             });
         }
         
+        // UPDATED: Distinguish function - only extracts from active HTML tab
         function distinguishCode() {
             const cssInput = document.getElementById('cssInput');
             const jsInput = document.getElementById('jsInput');
-            const baseHtmlInput = document.getElementById('baseHtmlInput');
             
-            if (!cssInput || !jsInput || !baseHtmlInput) {
+            if (!cssInput || !jsInput) {
                 alert('Error: Textarea not found.');
                 return;
             }
@@ -814,11 +796,10 @@
             if (!activeTab) return;
             
             let htmlContent = activeTab.html;
-            let baseHtmlContent = baseHtmlInput.value;
             let cssContent = '';
             let jsContent = '';
             
-            // Extract CSS from <style> tags
+            // Extract CSS from <style> tags (only from HTML tab)
             const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
             let styleMatch;
             while ((styleMatch = styleRegex.exec(htmlContent)) !== null) {
@@ -826,12 +807,7 @@
                 htmlContent = htmlContent.replace(styleMatch[0], '');
             }
             
-            while ((styleMatch = styleRegex.exec(baseHtmlContent)) !== null) {
-                cssContent += styleMatch[1].trim() + '\n';
-                baseHtmlContent = baseHtmlContent.replace(styleMatch[0], '');
-            }
-            
-            // Extract JavaScript from <script> tags
+            // Extract JavaScript from <script> tags (only from HTML tab)
             const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
             let scriptMatch;
             while ((scriptMatch = scriptRegex.exec(htmlContent)) !== null) {
@@ -839,16 +815,10 @@
                 htmlContent = htmlContent.replace(scriptMatch[0], '');
             }
             
-            while ((scriptMatch = scriptRegex.exec(baseHtmlContent)) !== null) {
-                jsContent += scriptMatch[1].trim() + '\n';
-                baseHtmlContent = baseHtmlContent.replace(scriptMatch[0], '');
-            }
-            
             // Update textareas
             activeTab.html = htmlContent.trim();
-            baseHtmlInput.value = baseHtmlContent.trim();
-            cssInput.value = cssContent.trim();
-            jsInput.value = jsContent.trim();
+            cssInput.value = (cssInput.value + '\n' + cssContent).trim();
+            jsInput.value = (jsInput.value + '\n' + jsContent).trim();
             
             // Update UI
             const textarea = document.getElementById(`${activeTab.id}_html`);
@@ -859,12 +829,12 @@
             updatePreview();
         }
         
+        // UPDATED: Merge function - only merges CSS and JS into active HTML tab (no Base HTML)
         function mergeCode() {
             const cssInput = document.getElementById('cssInput');
             const jsInput = document.getElementById('jsInput');
-            const baseHtmlInput = document.getElementById('baseHtmlInput');
             
-            if (!cssInput || !jsInput || !baseHtmlInput) {
+            if (!cssInput || !jsInput) {
                 alert('Error: Textarea not found.');
                 return;
             }
@@ -873,51 +843,40 @@
             if (!activeTab) return;
             
             let htmlContent = activeTab.html;
-            const baseHtmlContent = baseHtmlInput.value.trim();
             const cssContent = cssInput.value.trim();
             const jsContent = jsInput.value.trim();
             
-            let mergedHTML = baseHtmlContent;
+            // Start with the current HTML content
+            let mergedHTML = htmlContent;
             
+            // Insert CSS into <head> if not already present
             if (cssContent) {
                 if (mergedHTML.includes('</head>')) {
                     mergedHTML = mergedHTML.replace('</head>', `<style>${cssContent}</style></head>`);
                 } else if (mergedHTML.includes('<head>')) {
                     mergedHTML = mergedHTML.replace('<head>', `<head><style>${cssContent}</style>`);
                 } else {
-                    if (mergedHTML.includes('</body>')) {
-                        mergedHTML = mergedHTML.replace('</body>', `<style>${cssContent}</style></body>`);
-                    } else {
-                        mergedHTML += `<style>${cssContent}</style>`;
-                    }
+                    // If no head tag, add style at the beginning
+                    mergedHTML = `<style>${cssContent}</style>\n${mergedHTML}`;
                 }
             }
             
-            if (htmlContent) {
-                if (mergedHTML.includes('</body>')) {
-                    mergedHTML = mergedHTML.replace('</body>', `${htmlContent}</body>`);
-                } else if (mergedHTML.includes('<body>')) {
-                    mergedHTML = mergedHTML.replace('<body>', `<body>${htmlContent}`);
-                } else {
-                    mergedHTML += htmlContent;
-                }
-            }
-            
+            // Insert JavaScript before closing body tag
             if (jsContent) {
                 if (mergedHTML.includes('</body>')) {
                     mergedHTML = mergedHTML.replace('</body>', `<script>${jsContent}<\/script></body>`);
                 } else if (mergedHTML.includes('<body>')) {
                     mergedHTML = mergedHTML.replace('<body>', `<body><script>${jsContent}<\/script>`);
                 } else {
-                    mergedHTML += `<script>${jsContent}<\/script>`;
+                    // If no body tag, add script at the end
+                    mergedHTML += `\n<script>${jsContent}<\/script>`;
                 }
             }
             
             // Update active tab
             activeTab.html = mergedHTML;
             
-            // Clear other textareas
-            baseHtmlInput.value = '';
+            // Clear CSS and JS textareas
             cssInput.value = '';
             jsInput.value = '';
             
