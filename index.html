@@ -262,6 +262,15 @@
             gap: 5px;
         }
         
+        /* Tab Content Controls */
+        .tab-content-controls {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 5px;
+        }
+        
         /* Page Selector */
         .page-selector {
             display: flex;
@@ -319,6 +328,13 @@
                 align-items: center;
             }
             .editor button {
+                width: 100%;
+            }
+            .tab-content-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            .tab-content-controls button {
                 width: 100%;
             }
         }
@@ -474,14 +490,29 @@
                 tabContent.className = `html-tab-content ${tab.id === activeTabId ? 'active' : ''}`;
                 tabContent.id = `${tab.id}_content`;
                 
-                tabContent.innerHTML = `
-                    <textarea 
-                        id="${tab.id}_html" 
-                        placeholder="Enter HTML for ${tab.name}..."
-                        oninput="updateTabCode('${tab.id}', 'html', this.value); updatePreview()"
-                    >${tab.html}</textarea>
+                // Create HTML textarea
+                const textarea = document.createElement('textarea');
+                textarea.id = `${tab.id}_html`;
+                textarea.placeholder = `Enter HTML for ${tab.name}...`;
+                textarea.value = tab.html;
+                textarea.oninput = function() {
+                    updateTabCode(tab.id, 'html', this.value);
+                    updatePreview();
+                };
+                
+                // Create tab-specific buttons
+                const buttonGroup = document.createElement('div');
+                buttonGroup.className = 'tab-content-controls';
+                buttonGroup.innerHTML = `
+                    <button class="clear" onclick="clearTabCode('${tab.id}')">Clear</button>
+                    <button class="paste" onclick="pasteTabCode('${tab.id}')">Paste</button>
+                    <button class="copy" onclick="copyTabCode('${tab.id}')">Copy</button>
+                    <label for="${tab.id}_upload" class="upload" style="padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: #ffffff; width: 80px; text-align: center;">Upload</label>
+                    <input type="file" id="${tab.id}_upload" accept=".html,.htm" onchange="uploadTabCode('${tab.id}', this)">
                 `;
                 
+                tabContent.appendChild(textarea);
+                tabContent.appendChild(buttonGroup);
                 contentsContainer.appendChild(tabContent);
                 
                 // Add to page selector
@@ -540,6 +571,98 @@
             const pageSelect = document.getElementById('pageSelect');
             const selectedTabId = pageSelect.value;
             switchTab(selectedTabId);
+        }
+        
+        // Tab-specific functions
+        function clearTabCode(tabId) {
+            const tab = htmlTabs.find(t => t.id === tabId);
+            if (tab) {
+                tab.html = '';
+                const textarea = document.getElementById(`${tabId}_html`);
+                if (textarea) {
+                    textarea.value = '';
+                }
+                if (tabId === activeTabId) {
+                    updatePreview();
+                }
+            }
+        }
+        
+        async function pasteTabCode(tabId) {
+            try {
+                const text = await navigator.clipboard.readText();
+                const tab = htmlTabs.find(t => t.id === tabId);
+                if (tab) {
+                    tab.html = text;
+                    const textarea = document.getElementById(`${tabId}_html`);
+                    if (textarea) {
+                        textarea.value = text;
+                    }
+                    if (tabId === activeTabId) {
+                        updatePreview();
+                    }
+                }
+            } catch (err) {
+                alert('Failed to paste content. Ensure clipboard access is allowed.');
+            }
+        }
+        
+        function copyTabCode(tabId) {
+            const tab = htmlTabs.find(t => t.id === tabId);
+            if (tab) {
+                navigator.clipboard.writeText(tab.html).then(() => {
+                    alert('Code copied to clipboard!');
+                }).catch(() => {
+                    alert('Failed to copy content.');
+                });
+            }
+        }
+        
+        function uploadTabCode(tabId, input) {
+            if (!input.files || input.files.length === 0) {
+                alert('Error: No file selected.');
+                return;
+            }
+            
+            const file = input.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const tab = htmlTabs.find(t => t.id === tabId);
+                if (tab) {
+                    // Extract filename without extension for tab name
+                    const fileName = file.name;
+                    const nameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
+                    
+                    // Update tab name if it's a default name
+                    if (tab.name.startsWith('Page ') || !tab.name) {
+                        tab.name = nameWithoutExt;
+                    }
+                    
+                    // Update tab content
+                    tab.html = e.target.result;
+                    
+                    // Update UI
+                    const textarea = document.getElementById(`${tabId}_html`);
+                    if (textarea) {
+                        textarea.value = tab.html;
+                    }
+                    
+                    // Update tab UI to reflect new name
+                    updateTabUI();
+                    
+                    if (tabId === activeTabId) {
+                        updatePreview();
+                    }
+                }
+                input.value = ''; // Reset file input
+            };
+            
+            reader.onerror = function() {
+                alert('Failed to read the file.');
+            };
+            
+            reader.readAsText(file);
         }
         
         // Get active tab HTML
