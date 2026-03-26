@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>CodeCanvas | Multi-Tab Live Code Playground</title>
+  <title>CodeCanvas | Fullscreen Preview & Empty State Editor</title>
   <style>
     * {
       box-sizing: border-box;
@@ -33,6 +33,7 @@
       z-index: 20;
       display: flex;
       align-items: center;
+      justify-content: space-between;
     }
     .back-btn {
       background: #2a2a36;
@@ -49,6 +50,32 @@
     .back-btn:hover {
       background: #3e3e4e;
       color: white;
+    }
+    .toggle-panel-btn {
+      background: #2c6eef;
+      border: none;
+      color: white;
+      font-size: 0.9rem;
+      padding: 6px 16px;
+      border-radius: 40px;
+      cursor: pointer;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: 0.2s;
+    }
+    .toggle-panel-btn:hover {
+      background: #1e5ad9;
+      transform: scale(1.02);
+    }
+    .arrow-icon {
+      font-size: 1.1rem;
+      transition: transform 0.3s ease;
+      display: inline-block;
+    }
+    .arrow-icon.collapsed {
+      transform: rotate(180deg);
     }
 
     /* Fixed preview controls */
@@ -88,7 +115,7 @@
       padding: 20px;
       overflow: auto;
       flex: 1;
-      transition: all 0.2s;
+      transition: all 0.3s ease;
     }
     .preview-container {
       background: white;
@@ -106,16 +133,44 @@
       display: block;
     }
 
-    /* Bottom fixed editor panel */
+    /* Bottom fixed editor panel - collapsible */
     .editor-panel {
       background: #14141c;
       border-top: 2px solid #2a2a34;
       display: flex;
       flex-direction: column;
-      height: 46%;
-      min-height: 280px;
-      overflow-y: auto;
-      box-shadow: 0 -4px 12px rgba(0,0,0,0.3);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .editor-panel.collapsed {
+      height: 48px !important;
+      min-height: 48px !important;
+    }
+    .panel-drag-handle {
+      background: #1e1e28;
+      padding: 8px 16px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #2d2d3a;
+      transition: 0.2s;
+    }
+    .panel-drag-handle:hover {
+      background: #2a2a36;
+    }
+    .collapse-toggle-icon {
+      font-size: 1.2rem;
+      transition: transform 0.3s;
+      color: #8b8baa;
+    }
+    .panel-title {
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      color: #aaaac9;
     }
     .tabs-header {
       display: flex;
@@ -184,6 +239,11 @@
       padding: 16px;
       flex: 1;
       overflow-y: auto;
+      transition: opacity 0.2s;
+    }
+    .editor-panel.collapsed .editors-grid,
+    .editor-panel.collapsed .tabs-header {
+      display: none;
     }
     .editor-card {
       background: #0e0e14;
@@ -217,6 +277,11 @@
       font-weight: 500;
       cursor: pointer;
       color: #d9e2ff;
+      transition: 0.1s;
+    }
+    .action-btn:hover {
+      background: #3d3d50;
+      transform: translateY(-1px);
     }
     textarea {
       background: #03030a;
@@ -231,6 +296,10 @@
       min-height: 160px;
       outline: none;
       line-height: 1.4;
+    }
+    .empty-state-hint {
+      color: #4a4a6a;
+      font-style: italic;
     }
     @media (max-width: 768px) {
       .editors-grid { grid-template-columns: repeat(2, 1fr); }
@@ -250,6 +319,10 @@
 
 <div class="back-bar">
   <button class="back-btn" id="backBtn">← Back to Dashboard</button>
+  <button class="toggle-panel-btn" id="togglePanelBtn">
+    <span class="arrow-icon" id="arrowIcon">▼</span>
+    <span id="toggleText">Hide Code Panel</span>
+  </button>
 </div>
 
 <div class="preview-toolbar">
@@ -264,7 +337,11 @@
   </div>
 </div>
 
-<div class="editor-panel">
+<div class="editor-panel" id="editorPanel">
+  <div class="panel-drag-handle" id="panelHandle">
+    <span class="collapse-toggle-icon" id="handleIcon">▲</span>
+    <span class="panel-title">⚡ CODE WORKSPACE (HTML/CSS/JS) — drag to resize not needed, click to collapse</span>
+  </div>
   <div class="tabs-header" id="tabsHeader">
     <!-- dynamic tabs injected -->
   </div>
@@ -279,11 +356,11 @@
           <button class="action-btn upload-base">Upload</button>
         </div>
       </div>
-      <textarea id="baseHtmlEditor" placeholder="&lt;html&gt;&lt;body&gt;... wrapper structure"></textarea>
+      <textarea id="baseHtmlEditor" placeholder="<!-- Empty state: add your base HTML structure here -->"></textarea>
     </div>
     <!-- Active Tab HTML (per page) -->
     <div class="editor-card">
-      <div class="editor-header"><span>📑 Page HTML <span id="activeTabName">(index)</span></span>
+      <div class="editor-header"><span>📑 Page HTML <span id="activeTabName">(home)</span></span>
         <div class="action-buttons">
           <button class="action-btn clear-htmltab">Clear</button>
           <button class="action-btn paste-htmltab">Paste</button>
@@ -293,7 +370,7 @@
           <button class="action-btn merge-btn" style="background:#2c5e8c;">🔄 Merge</button>
         </div>
       </div>
-      <textarea id="htmlTabEditor" placeholder="&lt;h1&gt;Hello world&lt;/h1&gt;"></textarea>
+      <textarea id="htmlTabEditor" placeholder="<!-- Your page content: HTML elements go here -->"></textarea>
     </div>
     <!-- Global CSS -->
     <div class="editor-card">
@@ -305,7 +382,7 @@
           <button class="action-btn upload-css">Upload</button>
         </div>
       </div>
-      <textarea id="globalCssEditor" placeholder="body { background: #f5f5f5; }"></textarea>
+      <textarea id="globalCssEditor" placeholder="/* Global styles */"></textarea>
     </div>
     <!-- Global JS -->
     <div class="editor-card">
@@ -317,7 +394,7 @@
           <button class="action-btn upload-js">Upload</button>
         </div>
       </div>
-      <textarea id="globalJsEditor" placeholder="console.log('global script');"></textarea>
+      <textarea id="globalJsEditor" placeholder="// Global JavaScript"></textarea>
     </div>
   </div>
 </div>
@@ -337,75 +414,74 @@
   const previewContainer = document.getElementById('previewContainer');
   const tabsHeaderDiv = document.getElementById('tabsHeader');
   const activeTabNameSpan = document.getElementById('activeTabName');
+  const editorPanel = document.getElementById('editorPanel');
+  const togglePanelBtn = document.getElementById('togglePanelBtn');
+  const arrowIcon = document.getElementById('arrowIcon');
+  const toggleTextSpan = document.getElementById('toggleText');
+  const panelHandle = document.getElementById('panelHandle');
 
-  // default base template
-  const DEFAULT_BASE = `<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Live Preview</title></head>
-<body>
-  <!-- PAGE CONTENT WILL BE INJECTED HERE -->
-</body>
-</html>`;
+  // EMPTY STATE: all editors start empty except we set friendly placeholders
+  // Base HTML is empty (no default wrapper) - user must provide or keep empty for raw preview
+  baseEditor.value = '';   // empty initial state
+  globalCssEditor.value = '';
+  globalJsEditor.value = '';
 
-  baseEditor.value = DEFAULT_BASE;
-
-  // Helper: update live preview
+  // Helper: update live preview with empty-aware handling
   function updatePreview() {
-    const baseContent = baseEditor.value.trim() === "" ? "<!DOCTYPE html><html><body></body></html>" : baseEditor.value;
+    const baseContent = baseEditor.value.trim() === "" ? "<!DOCTYPE html><html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'></head><body></body></html>" : baseEditor.value;
     const activeTab = htmlTabs.find(t => t.id === activeTabId);
-    const pageHtml = activeTab ? activeTab.html : "<div>No page selected</div>";
+    const pageHtml = activeTab ? activeTab.html : "<div style='padding:20px; font-family:sans-serif;'>✨ No page selected or empty content — start coding!</div>";
     const globalCss = globalCssEditor.value;
     const globalJs = globalJsEditor.value;
 
     let finalDoc = baseContent;
-    // Inject page content into body: we need to merge intelligently.
-    // strategy: if base contains <body.*>.*</body> we replace body inner with pageHtml + global scripts
-    // better: create temp parser friendly: use inner injection.
+    // Smart injection into body
     let tempDiv = document.createElement('div');
     tempDiv.innerHTML = baseContent;
     let bodyTag = tempDiv.querySelector('body');
     if (bodyTag) {
-      // preserve existing body children? we replace with pageHtml
       bodyTag.innerHTML = pageHtml;
+      finalDoc = tempDiv.innerHTML;
     } else {
-      // no body, wrap
-      finalDoc = baseContent.replace('</body>', pageHtml + '</body>');
-      if (!finalDoc.includes('<body')) finalDoc = '<body>' + pageHtml + '</body>' + finalDoc;
+      // fallback replace method
+      if (finalDoc.includes('</body>')) {
+        finalDoc = finalDoc.replace('</body>', pageHtml + '</body>');
+      } else {
+        finalDoc = '<body>' + pageHtml + '</body>' + finalDoc;
+      }
     }
-    // inject CSS & JS into final document
-    let fullHtml = finalDoc;
+    // inject CSS & JS
     if (globalCss.trim()) {
       const styleTag = `<style data-global-css="true">\n${globalCss}\n</style>`;
-      if (fullHtml.toLowerCase().includes('</head>')) {
-        fullHtml = fullHtml.replace(/<\/head>/i, styleTag + '\n</head>');
-      } else if (fullHtml.toLowerCase().includes('<body')) {
-        fullHtml = fullHtml.replace(/<body/i, styleTag + '\n<body');
+      if (finalDoc.toLowerCase().includes('</head>')) {
+        finalDoc = finalDoc.replace(/<\/head>/i, styleTag + '\n</head>');
+      } else if (finalDoc.toLowerCase().includes('<body')) {
+        finalDoc = finalDoc.replace(/<body/i, styleTag + '\n<body');
       } else {
-        fullHtml = styleTag + fullHtml;
+        finalDoc = styleTag + finalDoc;
       }
     }
     if (globalJs.trim()) {
       const scriptTag = `<script data-global-js="true">\n${globalJs}\n<\/script>`;
-      if (fullHtml.toLowerCase().includes('</body>')) {
-        fullHtml = fullHtml.replace(/<\/body>/i, scriptTag + '\n</body>');
+      if (finalDoc.toLowerCase().includes('</body>')) {
+        finalDoc = finalDoc.replace(/<\/body>/i, scriptTag + '\n</body>');
       } else {
-        fullHtml = fullHtml + scriptTag;
+        finalDoc = finalDoc + scriptTag;
       }
     }
-    // render iframe
     const doc = previewFrame.contentWindow.document;
     doc.open();
-    doc.write(fullHtml);
+    doc.write(finalDoc);
     doc.close();
   }
 
-  // Event listeners for auto-update
+  // Attach auto-update listeners
   function attachAutoUpdates() {
     const elements = [baseEditor, htmlTabEditor, globalCssEditor, globalJsEditor];
     elements.forEach(el => el.addEventListener('input', () => updatePreview()));
   }
 
-  // device preview
+  // Device preview
   function setPreview(device) {
     let width, height;
     if (device === 'phone') { width = 360; height = 640; }
@@ -419,7 +495,7 @@
     document.querySelector(`.device-btn[data-device="${device}"]`).classList.add('active');
   }
 
-  // update tab UI + refresh active editor content
+  // UI: update tabs & sync active HTML editor
   function updateTabUI() {
     tabsHeaderDiv.innerHTML = '';
     htmlTabs.forEach(tab => {
@@ -458,7 +534,7 @@
       switchTab(parseInt(e.target.value));
     });
     tabsHeaderDiv.appendChild(selector);
-    // sync active tab editor content
+    // sync active editor
     const active = htmlTabs.find(t => t.id === activeTabId);
     if (active) {
       htmlTabEditor.value = active.html;
@@ -483,7 +559,7 @@
   function addHtmlTab() {
     const newId = ++tabCounter;
     const newName = `page_${newId}`;
-    const newHtml = `<div style="padding:20px;"><h2>New page: ${newName}</h2><p>Edit content here.</p></div>`;
+    const newHtml = `<div style="padding:20px; font-family:system-ui;"><h2>✨ New page: ${newName}</h2><p>Start editing your content here.</p></div>`;
     htmlTabs.push({ id: newId, name: newName, html: newHtml });
     if (activeTabId === null) activeTabId = newId;
     else activeTabId = newId;
@@ -492,7 +568,7 @@
 
   function removeHtmlTab(tabId) {
     if (htmlTabs.length <= 1) {
-      alert("Minimum one tab required. You cannot delete the last page.");
+      alert("Minimum one tab required. Keep at least one HTML page.");
       return;
     }
     const index = htmlTabs.findIndex(t => t.id === tabId);
@@ -503,7 +579,7 @@
     updateTabUI();
   }
 
-  // Rename via file upload (rename feature: upload file to set page name and content)
+  // rename via upload file
   function renameTabViaUpload(tabId, file) {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -524,7 +600,7 @@
     reader.readAsText(file);
   }
 
-  // Distinguish: extract <style> and <script> from active HTML tab, move to global CSS/JS
+  // Distinguish: extract <style> and <script> from active HTML
   function distinguishCode() {
     const activeTab = htmlTabs.find(t => t.id === activeTabId);
     if (!activeTab) return;
@@ -553,7 +629,7 @@
     updatePreview();
   }
 
-  // Merge: inject global CSS/JS into active HTML tab (with style/script tags) and clear globals
+  // Merge: inject global CSS/JS into active HTML tab
   function mergeCode() {
     const activeTab = htmlTabs.find(t => t.id === activeTabId);
     if (!activeTab) return;
@@ -587,7 +663,7 @@
     updatePreview();
   }
 
-  // ----- clipboard & upload helpers -----
+  // Clipboard helpers
   async function pasteToTextarea(textarea) {
     try {
       const text = await navigator.clipboard.readText();
@@ -614,8 +690,6 @@
     };
     input.click();
   }
-
-  // additional: rename & upload for html tab via file (renames tab)
   function uploadHtmlTabFile() {
     const input = document.createElement('input');
     input.type = 'file';
@@ -630,45 +704,68 @@
 
   function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
 
-  // event binding
   function bindEditorButtons() {
-    // base
     document.querySelector('.clear-base').onclick = () => { baseEditor.value = ''; baseEditor.dispatchEvent(new Event('input')); };
     document.querySelector('.paste-base').onclick = () => pasteToTextarea(baseEditor);
     document.querySelector('.copy-base').onclick = () => copyFromTextarea(baseEditor);
     document.querySelector('.upload-base').onclick = () => uploadToTextarea(baseEditor, ".html,.txt");
-    // html tab
     document.querySelector('.clear-htmltab').onclick = () => { const t = htmlTabs.find(t=>t.id===activeTabId); if(t){ t.html=''; htmlTabEditor.value=''; updateTabUI(); updatePreview(); } };
     document.querySelector('.paste-htmltab').onclick = () => pasteToTextarea(htmlTabEditor);
     document.querySelector('.copy-htmltab').onclick = () => copyFromTextarea(htmlTabEditor);
     document.querySelector('.upload-htmltab').onclick = () => uploadHtmlTabFile();
     document.querySelector('.distinguish-btn').onclick = () => distinguishCode();
     document.querySelector('.merge-btn').onclick = () => mergeCode();
-    // css
     document.querySelector('.clear-css').onclick = () => { globalCssEditor.value = ''; updatePreview(); };
     document.querySelector('.paste-css').onclick = () => pasteToTextarea(globalCssEditor);
     document.querySelector('.copy-css').onclick = () => copyFromTextarea(globalCssEditor);
     document.querySelector('.upload-css').onclick = () => uploadToTextarea(globalCssEditor, ".css");
-    // js
     document.querySelector('.clear-js').onclick = () => { globalJsEditor.value = ''; updatePreview(); };
     document.querySelector('.paste-js').onclick = () => pasteToTextarea(globalJsEditor);
     document.querySelector('.copy-js').onclick = () => copyFromTextarea(globalJsEditor);
     document.querySelector('.upload-js').onclick = () => uploadToTextarea(globalJsEditor, ".js");
   }
 
-  // Save active tab content when htmlTabEditor changes
+  // HTML Tab editor sync
   htmlTabEditor.addEventListener('input', () => {
     const active = htmlTabs.find(t => t.id === activeTabId);
     if (active) {
       active.html = htmlTabEditor.value;
       updatePreview();
-      updateTabUI();   // refresh names only, but preserve selection
+      updateTabUI();
     }
   });
 
-  // initial tabs
+  // Collapse / Expand functionality
+  let isPanelCollapsed = false;
+  function toggleCodePanel() {
+    isPanelCollapsed = !isPanelCollapsed;
+    if (isPanelCollapsed) {
+      editorPanel.classList.add('collapsed');
+      arrowIcon.classList.add('collapsed');
+      arrowIcon.textContent = '▲';
+      toggleTextSpan.textContent = 'Show Code Panel';
+      handleIcon.textContent = '▼';
+    } else {
+      editorPanel.classList.remove('collapsed');
+      arrowIcon.classList.remove('collapsed');
+      arrowIcon.textContent = '▼';
+      toggleTextSpan.textContent = 'Hide Code Panel';
+      handleIcon.textContent = '▲';
+    }
+    // Force iframe reflow / preview keeps working
+    setTimeout(() => updatePreview(), 50);
+  }
+  togglePanelBtn.addEventListener('click', toggleCodePanel);
+  panelHandle.addEventListener('click', toggleCodePanel);
+
+  // Initialize with EMPTY editors & one default tab (with empty placeholder)
   function init() {
-    htmlTabs.push({ id: 1, name: "home", html: `<div style="font-family:sans-serif; padding:1rem;"><h1>✨ Welcome</h1><p>Multi-tab playground active.</p><button onclick="alert('Hello')">Test JS</button></div>` });
+    // Empty all code editors (already empty but reset again)
+    baseEditor.value = '';
+    globalCssEditor.value = '';
+    globalJsEditor.value = '';
+    // One default tab with minimal placeholder content but still empty-ish? Provide basic starter
+    htmlTabs.push({ id: 1, name: "home", html: `<div style="padding: 20px; font-family: system-ui; color: #333;"><h2>🚀 Start Coding</h2><p>Write HTML, CSS, JS in panels below.</p><button onclick="alert('Works!')">Click me</button></div>` });
     activeTabId = 1;
     tabCounter = 1;
     updateTabUI();
@@ -679,7 +776,7 @@
     document.querySelectorAll('.device-btn').forEach(btn => {
       btn.addEventListener('click', (e) => setPreview(btn.dataset.device));
     });
-    document.getElementById('backBtn').addEventListener('click', () => alert("Navigation demo — you can add real routing later."));
+    document.getElementById('backBtn').addEventListener('click', () => alert("Navigation demo — full preview mode ready"));
   }
   init();
 </script>
