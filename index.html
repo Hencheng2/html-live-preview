@@ -647,8 +647,8 @@
     pageEditorInstance = pageCard.cmInstance;
     attachDefaultActions(pageEditorInstance, pageCard.headerActionsDiv, 'html');
     // additional distinguish/merge buttons
-    const distinguishBtn = document.createElement('button'); distinguishBtn.textContent = '✨ Distinguish'; distinguishBtn.className = 'action-btn';
-    const mergeBtn = document.createElement('button'); mergeBtn.textContent = '🔄 Merge'; mergeBtn.className = 'action-btn';
+    const distinguishBtn = document.createElement('button'); distinguishBtn.textContent = 'Distinguish'; distinguishBtn.className = 'action-btn';
+    const mergeBtn = document.createElement('button'); mergeBtn.textContent = 'Merge'; mergeBtn.className = 'action-btn';
     pageCard.headerActionsDiv.append(distinguishBtn, mergeBtn);
     distinguishBtn.onclick = () => distinguishCode();
     mergeBtn.onclick = () => mergeCode();
