@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>CodeCanvas | Fullscreen Preview & Empty State Editor</title>
+  <title>CodeCanvas | Fullscreen Preview & Editor</title>
   <style>
     * {
       box-sizing: border-box;
@@ -23,17 +23,23 @@
       overflow: hidden;
     }
 
-    /* Fixed back button */
-    .back-bar {
+    /* Unified top bar: contains Back, Device toggles, and Hide/Show panel */
+    .top-bar {
       background: #1e1e2a;
-      padding: 8px 20px;
+      padding: 6px 20px;
       border-bottom: 1px solid #2d2d3a;
-      position: sticky;
-      top: 0;
-      z-index: 20;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      z-index: 30;
+      flex-shrink: 0;
+    }
+    .left-group {
+      display: flex;
+      gap: 12px;
+      align-items: center;
     }
     .back-btn {
       background: #2a2a36;
@@ -51,12 +57,37 @@
       background: #3e3e4e;
       color: white;
     }
+    .device-group {
+      display: flex;
+      gap: 8px;
+      background: #14141c;
+      padding: 4px 12px;
+      border-radius: 48px;
+      align-items: center;
+    }
+    .device-btn {
+      background: #2c2c34;
+      border: none;
+      padding: 5px 16px;
+      border-radius: 32px;
+      font-weight: 600;
+      font-size: 0.75rem;
+      cursor: pointer;
+      color: #b9c3db;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .device-btn.active {
+      background: #10b981;
+      color: white;
+      box-shadow: 0 2px 8px rgba(16,185,129,0.3);
+    }
     .toggle-panel-btn {
       background: #2c6eef;
       border: none;
       color: white;
-      font-size: 0.9rem;
-      padding: 6px 16px;
+      font-size: 0.85rem;
+      padding: 6px 18px;
       border-radius: 40px;
       cursor: pointer;
       font-weight: 500;
@@ -64,13 +95,14 @@
       align-items: center;
       gap: 8px;
       transition: 0.2s;
+      white-space: nowrap;
     }
     .toggle-panel-btn:hover {
       background: #1e5ad9;
       transform: scale(1.02);
     }
     .arrow-icon {
-      font-size: 1.1rem;
+      font-size: 1rem;
       transition: transform 0.3s ease;
       display: inline-block;
     }
@@ -78,52 +110,24 @@
       transform: rotate(180deg);
     }
 
-    /* Fixed preview controls */
-    .preview-toolbar {
-      background: #18181f;
-      padding: 10px 20px;
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-      border-bottom: 1px solid #2c2c38;
-      position: sticky;
-      top: 48px;
-      z-index: 15;
-    }
-    .device-btn {
-      background: #2c2c34;
-      border: none;
-      padding: 6px 18px;
-      border-radius: 32px;
-      font-weight: 600;
-      font-size: 0.8rem;
-      cursor: pointer;
-      color: #b9c3db;
-      transition: all 0.2s ease;
-    }
-    .device-btn.active {
-      background: #10b981;
-      color: white;
-      box-shadow: 0 2px 8px rgba(16,185,129,0.3);
-    }
-    .preview-frame-wrapper {
+    /* PREVIEW AREA — independent scrollable wrapper */
+    .preview-scroll-wrapper {
+      flex: 1;
       background: #0a0a0c;
+      overflow-y: auto;
       display: flex;
       justify-content: center;
-      align-items: center;
+      align-items: flex-start; /* ensures scroll reaches full content height */
       padding: 20px;
-      overflow: auto;
-      flex: 1;
-      transition: all 0.3s ease;
+      position: relative;
     }
     .preview-container {
       background: white;
       box-shadow: 0 20px 35px -12px rgba(0,0,0,0.5);
       border-radius: 12px;
       transition: all 0.2s cubic-bezier(0.2,0.9,0.4,1.1);
-      overflow: hidden;
-      resize: both;
+      overflow: auto;   /* inner scroll only if needed, but outer handles main scroll */
+      flex-shrink: 0;
     }
     iframe {
       width: 100%;
@@ -133,7 +137,7 @@
       display: block;
     }
 
-    /* Bottom fixed editor panel - collapsible */
+    /* Bottom editor panel (collapsible) */
     .editor-panel {
       background: #14141c;
       border-top: 2px solid #2a2a34;
@@ -297,13 +301,11 @@
       outline: none;
       line-height: 1.4;
     }
-    .empty-state-hint {
-      color: #4a4a6a;
-      font-style: italic;
-    }
     @media (max-width: 768px) {
       .editors-grid { grid-template-columns: repeat(2, 1fr); }
-      .preview-toolbar { top: 42px; }
+      .top-bar { flex-direction: column; align-items: stretch; }
+      .left-group { justify-content: space-between; }
+      .device-group { justify-content: center; }
     }
     @media (max-width: 480px) {
       .editors-grid { grid-template-columns: 1fr; }
@@ -317,26 +319,30 @@
 </head>
 <body>
 
-<div class="back-bar">
-  <button class="back-btn" id="backBtn">← Back to Dashboard</button>
+<!-- Unified Top Bar: back button + device toggles + hide/show panel -->
+<div class="top-bar">
+  <div class="left-group">
+    <button class="back-btn" id="backBtn">← Back to Dashboard</button>
+    <div class="device-group">
+      <button class="device-btn" data-device="phone">📱 Phone (360x640)</button>
+      <button class="device-btn" data-device="tablet">📟 Tablet (768x1024)</button>
+      <button class="device-btn active" data-device="laptop">💻 Laptop (1366x768)</button>
+    </div>
+  </div>
   <button class="toggle-panel-btn" id="togglePanelBtn">
     <span class="arrow-icon" id="arrowIcon">▼</span>
     <span id="toggleText">Hide Code Panel</span>
   </button>
 </div>
 
-<div class="preview-toolbar">
-  <button class="device-btn" data-device="phone">📱 Phone (360x640)</button>
-  <button class="device-btn" data-device="tablet">📟 Tablet (768x1024)</button>
-  <button class="device-btn active" data-device="laptop">💻 Laptop (1366x768)</button>
-</div>
-
-<div class="preview-frame-wrapper">
+<!-- Independent scrollable preview wrapper: ensures full page preview scrolls to the end -->
+<div class="preview-scroll-wrapper" id="previewScrollWrapper">
   <div class="preview-container" id="previewContainer">
     <iframe id="livePreview" title="Live preview" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>
   </div>
 </div>
 
+<!-- Bottom editor panel (collapsible) -->
 <div class="editor-panel" id="editorPanel">
   <div class="panel-drag-handle" id="panelHandle">
     <span class="collapse-toggle-icon" id="handleIcon">▲</span>
@@ -401,7 +407,7 @@
 
 <script>
   // ---------- DATA MODEL ----------
-  let htmlTabs = [];      // { id, name, html }
+  let htmlTabs = [];      
   let activeTabId = null;
   let tabCounter = 1;
 
@@ -420,22 +426,21 @@
   const toggleTextSpan = document.getElementById('toggleText');
   const panelHandle = document.getElementById('panelHandle');
 
-  // EMPTY STATE: all editors start empty except we set friendly placeholders
-  // Base HTML is empty (no default wrapper) - user must provide or keep empty for raw preview
-  baseEditor.value = '';   // empty initial state
+  // EMPTY STATE: all editors start empty
+  baseEditor.value = '';
   globalCssEditor.value = '';
   globalJsEditor.value = '';
 
-  // Helper: update live preview with empty-aware handling
+  // Core preview builder (ensures full page content inside iframe)
   function updatePreview() {
-    const baseContent = baseEditor.value.trim() === "" ? "<!DOCTYPE html><html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'></head><body></body></html>" : baseEditor.value;
+    const baseContentRaw = baseEditor.value.trim();
+    let baseContent = baseContentRaw === "" ? "<!DOCTYPE html><html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'></head><body></body></html>" : baseContentRaw;
     const activeTab = htmlTabs.find(t => t.id === activeTabId);
     const pageHtml = activeTab ? activeTab.html : "<div style='padding:20px; font-family:sans-serif;'>✨ No page selected or empty content — start coding!</div>";
     const globalCss = globalCssEditor.value;
     const globalJs = globalJsEditor.value;
 
     let finalDoc = baseContent;
-    // Smart injection into body
     let tempDiv = document.createElement('div');
     tempDiv.innerHTML = baseContent;
     let bodyTag = tempDiv.querySelector('body');
@@ -443,14 +448,13 @@
       bodyTag.innerHTML = pageHtml;
       finalDoc = tempDiv.innerHTML;
     } else {
-      // fallback replace method
       if (finalDoc.includes('</body>')) {
         finalDoc = finalDoc.replace('</body>', pageHtml + '</body>');
       } else {
         finalDoc = '<body>' + pageHtml + '</body>' + finalDoc;
       }
     }
-    // inject CSS & JS
+    // inject global CSS
     if (globalCss.trim()) {
       const styleTag = `<style data-global-css="true">\n${globalCss}\n</style>`;
       if (finalDoc.toLowerCase().includes('</head>')) {
@@ -461,6 +465,7 @@
         finalDoc = styleTag + finalDoc;
       }
     }
+    // inject global JS
     if (globalJs.trim()) {
       const scriptTag = `<script data-global-js="true">\n${globalJs}\n<\/script>`;
       if (finalDoc.toLowerCase().includes('</body>')) {
@@ -469,19 +474,19 @@
         finalDoc = finalDoc + scriptTag;
       }
     }
+    
     const doc = previewFrame.contentWindow.document;
     doc.open();
     doc.write(finalDoc);
     doc.close();
   }
 
-  // Attach auto-update listeners
   function attachAutoUpdates() {
     const elements = [baseEditor, htmlTabEditor, globalCssEditor, globalJsEditor];
     elements.forEach(el => el.addEventListener('input', () => updatePreview()));
   }
 
-  // Device preview
+  // Device preview + ensures preview container size adapts, and outer scroll handles it.
   function setPreview(device) {
     let width, height;
     if (device === 'phone') { width = 360; height = 640; }
@@ -490,9 +495,11 @@
     previewContainer.style.width = `${width}px`;
     previewContainer.style.height = `${height}px`;
     previewContainer.style.maxWidth = '100%';
-    previewContainer.style.overflow = 'auto';
+    // keep aspect / but height auto? we keep fixed height for device feel
     document.querySelectorAll('.device-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelector(`.device-btn[data-device="${device}"]`).classList.add('active');
+    // optional: tiny delay to ensure iframe re-renders
+    setTimeout(() => updatePreview(), 20);
   }
 
   // UI: update tabs & sync active HTML editor
@@ -514,13 +521,12 @@
       });
       tabsHeaderDiv.appendChild(tabDiv);
     });
-    // add new tab button
     const addBtn = document.createElement('button');
     addBtn.textContent = '+ New Page';
     addBtn.className = 'add-tab-btn';
     addBtn.onclick = () => addHtmlTab();
     tabsHeaderDiv.appendChild(addBtn);
-    // page selector dropdown
+    
     const selector = document.createElement('select');
     selector.className = 'page-selector';
     htmlTabs.forEach(tab => {
@@ -534,7 +540,7 @@
       switchTab(parseInt(e.target.value));
     });
     tabsHeaderDiv.appendChild(selector);
-    // sync active editor
+    
     const active = htmlTabs.find(t => t.id === activeTabId);
     if (active) {
       htmlTabEditor.value = active.html;
@@ -559,7 +565,7 @@
   function addHtmlTab() {
     const newId = ++tabCounter;
     const newName = `page_${newId}`;
-    const newHtml = `<div style="padding:20px; font-family:system-ui;"><h2>✨ New page: ${newName}</h2><p>Start editing your content here.</p></div>`;
+    const newHtml = `<div style="padding:20px; font-family:system-ui;"><h2>✨ New page: ${newName}</h2><p>Start editing your content here.</p><div style="margin-top: 40px; background:#f0f0f0; padding:20px;">Scroll test: this content ensures full scrollable preview</div></div>`;
     htmlTabs.push({ id: newId, name: newName, html: newHtml });
     if (activeTabId === null) activeTabId = newId;
     else activeTabId = newId;
@@ -579,7 +585,6 @@
     updateTabUI();
   }
 
-  // rename via upload file
   function renameTabViaUpload(tabId, file) {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -629,7 +634,6 @@
     updatePreview();
   }
 
-  // Merge: inject global CSS/JS into active HTML tab
   function mergeCode() {
     const activeTab = htmlTabs.find(t => t.id === activeTabId);
     if (!activeTab) return;
@@ -663,7 +667,6 @@
     updatePreview();
   }
 
-  // Clipboard helpers
   async function pasteToTextarea(textarea) {
     try {
       const text = await navigator.clipboard.readText();
@@ -725,7 +728,6 @@
     document.querySelector('.upload-js').onclick = () => uploadToTextarea(globalJsEditor, ".js");
   }
 
-  // HTML Tab editor sync
   htmlTabEditor.addEventListener('input', () => {
     const active = htmlTabs.find(t => t.id === activeTabId);
     if (active) {
@@ -735,7 +737,6 @@
     }
   });
 
-  // Collapse / Expand functionality
   let isPanelCollapsed = false;
   function toggleCodePanel() {
     isPanelCollapsed = !isPanelCollapsed;
@@ -752,20 +753,17 @@
       toggleTextSpan.textContent = 'Hide Code Panel';
       handleIcon.textContent = '▲';
     }
-    // Force iframe reflow / preview keeps working
     setTimeout(() => updatePreview(), 50);
   }
   togglePanelBtn.addEventListener('click', toggleCodePanel);
   panelHandle.addEventListener('click', toggleCodePanel);
 
-  // Initialize with EMPTY editors & one default tab (with empty placeholder)
   function init() {
-    // Empty all code editors (already empty but reset again)
     baseEditor.value = '';
     globalCssEditor.value = '';
     globalJsEditor.value = '';
-    // One default tab with minimal placeholder content but still empty-ish? Provide basic starter
-    htmlTabs.push({ id: 1, name: "home", html: `<div style="padding: 20px; font-family: system-ui; color: #333;"><h2>🚀 Start Coding</h2><p>Write HTML, CSS, JS in panels below.</p><button onclick="alert('Works!')">Click me</button></div>` });
+    // One default tab with a taller content to demo scrollability
+    htmlTabs.push({ id: 1, name: "home", html: `<div style="padding: 20px; font-family: system-ui; color: #222; max-width:100%;"><h2>🚀 Start Coding</h2><p>Write HTML, CSS, JS in panels below. This preview area is fully scrollable! The top bar stays fixed, preview scrolls independently to show entire page.</p><div style="height: 800px; background: linear-gradient(135deg, #f9f9ff, #e0e7ff); margin-top: 20px; border-radius: 24px; padding: 20px;"><h3>Long content area</h3><p>Scroll inside the preview wrapper to see the bottom of this container. No content hidden behind top bar.</p><button onclick="alert('Works!')" style="padding:10px 20px; margin-top:20px;">Click me</button><div style="margin-top: 40px;"><strong>End of page test</strong> — you can reach this point without obstruction.</div></div></div>` });
     activeTabId = 1;
     tabCounter = 1;
     updateTabUI();
